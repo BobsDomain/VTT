@@ -29,6 +29,7 @@ Plain questions ("what's new?") get an answer when they end in a question mark, 
 2. **Add it to your group.** It has to be a group: members can't post in a channel. A channel's discussion group works.
 3. **On GitHub,** under **Settings → Secrets and variables → Actions**:
    - **Secret** `TELEGRAM_TOKEN`: the bot's token. If you ever make a new token in @BotFather, update it here **and** in Cloudflare, or the release announcements stop.
+   - If Telegram ever turns the group into a **supergroup** (it can happen when you change some group settings, make someone an admin, or the group grows), the group gets a new id starting with `-100`. The **Announce a release** run prints the new id as a warning; put it in `TELEGRAM_CHAT_ID` here and in Cloudflare.
    - **Variable** `TELEGRAM_CHAT_ID`: the group's id (`-944196680`).
 
    To find a group's id, send a message there and open `https://api.telegram.org/bot<token>/getUpdates` in your browser; look for `"chat":{"id":…`.

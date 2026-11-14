@@ -27,8 +27,14 @@ const text = `🎉 <b>Tabletop ${esc(v)} is out!</b>\n` + (intro ? `${esc(intro)
 
 let failed = 0;
 for (const chat of chats) {
-  const r = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: chat, text, parse_mode: 'HTML', disable_web_page_preview: true }) });
-  const j = await r.json().catch(() => ({}));
-  if (j.ok) console.log(`Announced ${v} in ${chat}`); else { failed++; console.log(`Couldn't post in ${chat}: ${j.description || r.status}`); }
+  const send = async (id) => { const r = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: id, text, parse_mode: 'HTML', disable_web_page_preview: true }) }); return { r, j: await r.json().catch(() => ({})) }; };
+  let { r, j } = await send(chat);
+  const moved = j.parameters && j.parameters.migrate_to_chat_id;
+  if (!j.ok && moved) {
+    // Telegram turned the group into a supergroup, which has a new id
+    console.log(`::warning::The group ${chat} now has the id ${moved}. Set the TELEGRAM_CHAT_ID variable to ${moved} on GitHub and in Cloudflare.`);
+    ({ r, j } = await send(moved));
+  }
+  if (j.ok) console.log(`Announced ${v} in ${moved || chat}`); else { failed++; console.log(`Couldn't post in ${chat}: ${j.description || r.status}`); }
 }
 process.exit(failed === chats.length ? 1 : 0);

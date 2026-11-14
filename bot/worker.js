@@ -29,7 +29,7 @@ function createBot({ telegramToken, githubToken, repo, chats }) {
 
   async function tg(method, body = {}) {
     const r = await fetch(`https://api.telegram.org/bot${telegramToken}/${method}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-    const j = await r.json(); if (!j.ok) throw new Error(`Telegram ${method}: ${j.description}`); return j.result;
+    const j = await r.json(); if (!j.ok) { const e = new Error(`Telegram ${method}: ${j.description}`); e.params = j.parameters || {}; throw e; } return j.result;
   }
   async function gh(method, url, body) {
     const r = await fetch(`https://api.github.com${url}`, { method, headers: { Authorization: `Bearer ${githubToken}`, Accept: 'application/vnd.github+json', 'User-Agent': 'tabletop-bot', ...(body ? { 'Content-Type': 'application/json' } : {}) }, body: body ? JSON.stringify(body) : undefined });
@@ -132,6 +132,10 @@ function createBot({ telegramToken, githubToken, repo, chats }) {
   // ----- one message -----
   async function allowed(m) {
     if (CHATS.includes(String(m.chat.id))) return true;
+    if (m.chat.type === 'supergroup') {
+      // the group was upgraded to a supergroup, which gives it a new id: follow it until TELEGRAM_CHAT_ID is updated
+      for (const c of CHATS) { try { await tg('getChat', { chat_id: c }); } catch (e) { if (String(e.params.migrate_to_chat_id) === String(m.chat.id)) { console.log(`Group ${c} is now ${m.chat.id}: set TELEGRAM_CHAT_ID to ${m.chat.id}`); CHATS.push(String(m.chat.id)); return true; } } }
+    }
     if (m.chat.type !== 'private') return false;
     // a private message: fine from anyone in the group
     for (const c of CHATS) { try { const s = await tg('getChatMember', { chat_id: c, user_id: m.from.id }); if (['creator', 'administrator', 'member', 'restricted'].includes(s.status)) return true; } catch { /* not there */ } }
