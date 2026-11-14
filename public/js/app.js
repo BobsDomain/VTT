@@ -52,7 +52,7 @@ function onMessage(msg) {
       document.body.classList.toggle('dm', me.isDM);
       pinSet = !!msg.pinSet;
       const st = msg.state;
-      if (st.table) table = st.table;
+      if (st.table) { table = st.table; syncMonHp(); }
       handouts = st.handouts || []; renderHandouts();
       audioLib = st.audio || []; soundNow = st.sound || { music: null, amb: [] }; snd.apply(soundNow, st.now); renderSound();
       encounters = st.encounters || [];
@@ -101,7 +101,7 @@ function onMessage(msg) {
     }
     case 'handoutRemove': handouts = handouts.filter((h) => h.id !== msg.id); renderHandouts(); if (viewing === msg.id) $('handoutView').hidden = true; break;
     case 'presence': players = msg.players; renderPlayers(); renderTablePanel(); renderChatTargets(); break;
-    case 'table': table = msg.table; renderTablePanel(); renderPlayers(); break;
+    case 'table': table = msg.table; renderTablePanel(); renderPlayers(); syncMonHp(); break;
     case 'network': netInfo = msg.network; if (!$('netChip')) fetch('/api/info?key=' + encodeURIComponent(dmKey)).then((r) => r.json()).then(showConn).catch(() => {}); else renderNet(); break;
     case 'denied': showDenied(msg.reason); break;
     case 'library': library = msg.library; if (!$('libModal').hidden) renderLibrary(); break;
@@ -1616,10 +1616,19 @@ function aimAt(origin, q, minSize, shape) {
   const dist = Math.hypot(q.x - origin.x, q.y - origin.y);
   return { angle, size: Math.max(minSize, Math.round(dist) * 5) };
 }
-function newTemplate(p) {
+function newTemplate(p, free) {
   const q = toSq(p), o = { x: Math.round(q.x), y: Math.round(q.y) }; // spells start on a grid corner
+  // 1.20: a cone or line starts at the caster (your token; for the DM, the selected token). Shift+drag places it anywhere.
+  const s = sc(), from = !free && (tplShape === 'cone' || tplShape === 'line') && s ? (me.isDM ? (selected && s.tokens[selected]) : myTokens(s)[0]) || null : null;
   tplDraft = { shape: tplShape, x: o.x, y: o.y, angle: tplShape === 'cube' ? Math.PI / 4 : 0, size: Number($('tplSize').value) || tplSizes[tplShape], width: Number($('tplWidth').value) || 5,
-    color: $('tplFx').value ? SPELLS[$('tplFx').value].col : personColour(me.name, me.isDM), dragged: false };
+    color: $('tplFx').value ? SPELLS[$('tplFx').value].col : personColour(me.name, me.isDM), dragged: false, from: from ? from.id : null };
+  if (from) Object.assign(tplDraft, edgeToward(from, q), { dragged: true }, aimAt(edgeToward(from, q), q, 5, tplShape));
+}
+// where a line from the middle of a token towards a point leaves the token's space: a cone or line starts there
+function edgeToward(t, q) {
+  const cx = t.x + t.size / 2, cy = t.y + t.size / 2, dx = q.x - cx, dy = q.y - cy, h = t.size / 2;
+  const k = Math.max(Math.abs(dx), Math.abs(dy)) || 1;
+  return { x: cx + (dx / k) * h, y: cy + (dy / k) * h };
 }
 // a spell going off over its template, with its sound from where it is
 function castSpell(s, t) {
@@ -1639,10 +1648,10 @@ function finishTemplate() {
 }
 
 const TPL_HELP = {
-  cone: 'Drag from where the cone starts, in the direction it points. Or click to place one pointing right.',
+  cone: 'It starts at your token (the DM\'s: the selected token): drag the way it points. Shift+drag starts it anywhere else.',
   sphere: 'Click a grid corner for the centre, or drag out to the radius you want.',
   cube: 'Drag from one corner of the cube to the opposite corner.',
-  line: 'Drag from the caster in the direction of the line.',
+  line: 'It starts at your token (the DM\'s: the selected token): drag the way it goes. Shift+drag starts it anywhere else.',
   cylinder: 'Click a grid corner for the centre, or drag out to the radius you want.'
 };
 function setTplShape(shape) {
@@ -1956,7 +1965,7 @@ function renderEditor() {
   if (mine2 && t.sum) summonButtons(sb, t);
 }
 function summonButtons(box, t) {
-  for (const [i, a] of (t.sum.attacks || []).entries()) { const b = document.createElement('button'); b.textContent = '🎯 ' + a.name; b.title = `+${t.sum.attack} to hit, ${a.dice} ${a.type}${a.extra ? ` + ${a.extra.dice} ${a.extra.type}` : ''}${t.sum.multi > 1 ? ` · ${t.sum.multi} attacks a turn` : ''}`;
+  for (const [i, a] of (t.sum.attacks || []).entries()) { const b = document.createElement('button'); b.textContent = '🎯 ' + a.name; b.title = `+${a.bonus != null ? a.bonus : t.sum.attack} to hit, ${a.dice} ${a.type}${a.extra ? ` + ${a.extra.dice} ${a.extra.type}` : ''}${t.sum.multi > 1 ? ` · ${t.sum.multi} attacks a turn` : ''}`;
     b.onclick = () => startAim({ title: `${t.label}: ${a.name}, click the target`, harm: true, one: true, color: '#ef4444', send: (ids) => ids[0] && sendMsg({ type: 'summonAttack', sceneId: editing, id: t.id, idx: i, target: ids[0] }) }); box.append(b); }
   if (t.srd && !t.sum.attacks.length && !me.isDM) box.append(Object.assign(document.createElement('span'), { className: 'hint', textContent: 'The DM rolls its attacks' }));
   const d = document.createElement('button'); d.textContent = 'Dismiss'; d.className = 'quiet'; d.onclick = () => sendMsg({ type: 'summonDismiss', sceneId: editing, id: t.id }); box.append(d);
@@ -2138,6 +2147,7 @@ $('eToInit').onclick = () => {
 
 // ----- initiative panel -----
 function renderInit() {
+  renderParty();
   const s = sc(), c = s && s.combat;
   const active = !!(c && c.active);
   $('initSec').classList.toggle('off', !active);
@@ -2317,7 +2327,7 @@ canvas.addEventListener('pointerdown', (e) => {
       if (h) { tplAim = { id: h.id, angle: h.angle, size: h.size }; return; }
       const tp = templateAt(s, p);
       if (tp) { selTpl = tp.id; tplDrag = { id: tp.id, from: toSq(p), x: tp.x, y: tp.y, moved: false }; draw(); return; }
-      selTpl = null; newTemplate(p); draw(); return;
+      selTpl = null; newTemplate(p, e.shiftKey); draw(); return;
     }
     if (tt === 'label' && me.isDM) {
       const id = labelAt(p), l = id && s.labels[id];
@@ -2370,8 +2380,9 @@ canvas.addEventListener('pointermove', (e) => {
   if (fogStroke) { line(fogStroke.last, c, (x, y) => fogBrushAt(s, x, y, fogStroke.reveal)); fogStroke.last = c; draw(); return; }
   if (ruler) { const cur = centreOf(c); if (cur[0] !== ruler.cur[0] || cur[1] !== ruler.cur[1]) { ruler.cur = cur; shareMeasure([...ruler.points, cur]); draw(); } return; }
   if (tplDraft) {
-    const q = toSq(p), d = Math.hypot(q.x - tplDraft.x, q.y - tplDraft.y);
-    if (d > 0.45 || tplDraft.dragged) { Object.assign(tplDraft, aimAt(tplDraft, q, 5, tplDraft.shape)); tplDraft.dragged = true; }
+    const q = toSq(p), d = Math.hypot(q.x - tplDraft.x, q.y - tplDraft.y), ft = tplDraft.from && s.tokens[tplDraft.from];
+    if (ft) { const o = edgeToward(ft, q); Object.assign(tplDraft, o, aimAt(o, q, 5, tplDraft.shape)); } // turning around the caster
+    else if (d > 0.45 || tplDraft.dragged) { Object.assign(tplDraft, aimAt(tplDraft, q, 5, tplDraft.shape)); tplDraft.dragged = true; }
     draw(); return;
   }
   if (tplAim) { const t = (s.templates || {})[tplAim.id]; if (t) Object.assign(tplAim, aimAt(t, toSq(p), 5, t.shape)); draw(); return; }
@@ -3395,6 +3406,30 @@ function renderChar() {
   forget.onclick = () => { if (forget.dataset.armed) return sendMsg({ type: 'charForget' }); forget.dataset.armed = 1; forget.textContent = 'Sure?'; setTimeout(() => { delete forget.dataset.armed; forget.textContent = '✕'; }, 3000); };
   foot.append(refresh, forget); box.append(foot);
 }
+// 1.20: the party at a glance, for healers and the DM: every player character on this map, hurt ones first
+function renderParty() {
+  const s = sc(), box = $('partyList'); if (!box) return;
+  const pcs = s ? Object.values(s.tokens).filter((t) => t.owner && t.owner !== '*' && !t.sum && (me.isDM || !t.hidden)) : [];
+  $('partySec').hidden = !pcs.length; box.innerHTML = '';
+  const pct = (t) => { const f = hpFraction(t); return f == null ? 2 : f; };
+  for (const t of pcs.sort((a, b) => pct(a) - pct(b) || a.label.localeCompare(b.label))) {
+    const row = document.createElement('div'); row.className = 'pm' + (t.id === selected ? ' sel' : '');
+    const cv = document.createElement('canvas'); thumb(t, 22, cv);
+    const nm = document.createElement('span'); nm.className = 'nm'; nm.textContent = t.label + (t.owner !== t.label ? ` (${t.owner})` : '');
+    const f = hpFraction(t), down = (t.conditions || []).includes('dead') ? '☠ dead' : t.hp === 0 ? (t.death && t.death.stable ? 'stable' : `dying ${t.death ? `✔${t.death.s || 0} ✖${t.death.f || 0}` : ''}`) : '';
+    const hp = document.createElement('span'); hp.className = 'hpn'; hp.textContent = down || (t.hp != null && t.maxHp != null ? `${t.hp}/${t.maxHp}${t.tempHp ? ' +' + t.tempHp : ''}` : f != null ? Math.round(f * 100) + '%' : '');
+    const bar = document.createElement('div'); bar.className = 'bar'; const fill = document.createElement('i'); fill.style.width = ((f ?? 0) * 100) + '%'; fill.style.background = f == null ? 'transparent' : f > 0.5 ? '#22c55e' : f > 0.25 ? '#f59e0b' : '#ef4444'; bar.append(fill);
+    row.append(cv, nm, hp, bar);
+    const cs = (t.conditions || []).filter((c) => !['dead', 'concentrating'].includes(c));
+    if (cs.length) { const cd = document.createElement('div'); cd.className = 'cd'; cd.textContent = cs.map((c) => (conditions().find((x) => x.id === c) || { name: c }).name.split(' (')[0]).join(', '); row.append(cd); }
+    row.title = 'Select and show on the map';
+    row.onclick = () => { select(t.id); centreOn(t); };
+    box.append(row);
+  }
+}
+// 1.20: the table's default for what players see of monster HP (both copies of the setting stay in step)
+function syncMonHp() { document.querySelectorAll('.monHp').forEach((s) => { s.value = (table && table.monsterHp) || 'bar'; }); }
+document.querySelectorAll('.monHp').forEach((s) => s.onchange = () => sendMsg({ type: 'setMonsterHp', value: s.value }));
 // ---------- 1.19: a question from the table (an opportunity attack, Counterspell), with buttons and a timer ----------
 function showPrompt(p) {
   const box = document.createElement('div'); box.className = 'prompt'; box.dataset.id = p.id;

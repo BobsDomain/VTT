@@ -14,7 +14,7 @@ const FX = require('../public/js/monsterfx.js');
 const SUMS = require('./summons');
 const ddb = require('./ddb');
 
-const VERSION = '1.19.6';
+const VERSION = '1.20.0';
 const PUBLIC = path.join(__dirname, '..', 'public');
 const VISION = require(path.join(PUBLIC, 'js', 'vision.js'));
 const CATALOG = JSON.parse(fs.readFileSync(path.join(PUBLIC, 'catalog.json'), 'utf8'));
@@ -100,7 +100,7 @@ function loadState(file) {
     }
     return s;
   }
-  const state = { version: 2, scenes: {}, order: [], activeScene: null, log: [], macros: {}, library: [], passcode: '', blocked: [], pins: {}, encounters: [], audio: [], sound: { music: null, amb: [] }, diceSkins: {}, characters: {}, items: {}, inventory: {} };
+  const state = { version: 2, scenes: {}, order: [], activeScene: null, log: [], macros: {}, library: [], passcode: '', blocked: [], pins: {}, monsterHp: 'bar', encounters: [], audio: [], sound: { music: null, amb: [] }, diceSkins: {}, characters: {}, items: {}, inventory: {} };
   if (s && s.map) { // migrate the single-map format from v0.1/v0.2
     const sc = newScene('Imported map', s.map.cols, s.map.rows);
     if (s.map.url) sc.bg = { url: s.map.url };
@@ -411,7 +411,7 @@ function startServer({ port = 3000, host = '0.0.0.0', dataDir, dmKey, network = 
   // "players see HP" setting (default: numbers for player characters, just a bar for everything else).
   function tokenFor(t, u) {
     if (u.isDM || (t.owner && t.owner === u.name)) return t;
-    const show = t.hpShow || (t.owner ? 'numbers' : 'bar');
+    const show = t.hpShow || (t.owner ? 'numbers' : HP_SHOW.includes(state.monsterHp) ? state.monsterHp : 'bar'); // 1.20: the table's default for monsters
     if (show === 'numbers') return t;
     const { hp, maxHp, tempHp, initBonus, ...rest } = t;
     if (show === 'bar' && maxHp > 0 && hp != null) rest.hpPct = Math.round(clamp(hp / maxHp, 0, 1) * 100);
@@ -1302,10 +1302,34 @@ function startServer({ port = 3000, host = '0.0.0.0', dataDir, dmKey, network = 
     c.entries.push(e); sortCombat(sc); sendCombat(sc);
   }
   // a spell that puts creatures or things on the map: next to the caster, owned by the caster's player (who moves them)
-  function summonFrom(sc, sp, cast, ctx) {
+  // a summoned monster's attacks from its stat block, so a player can use them (a familiar, skeletons, conjured beasts)
+  function attacksOf(mon) {
+    const out = [];
+    for (const a of mon.actions || []) {
+      const P = FX.parse(a.d, mon.name, 'actions'), M = FX.meta(a, mon); if (P.attack == null || !P.hit.length) continue;
+      out.push({ name: a.n.replace(/\s*\(.*?\)\s*$/, ''), dice: P.hit[0].dice, type: P.hit[0].type, extra: P.hit[1] || null, melee: /Melee/i.test(a.d), reach: M.reach || 5, range: M.range ? M.range.normal : 0, long: M.range ? M.range.long : 0, bonus: P.attack });
+    }
+    return out.slice(0, 4);
+  }
+  // 2014 Conjure Animals: which beasts of that Challenge Rating (the caster picks one kind)
+  const beastsOfCr = (cr) => { srdOf({ srd: 'x' }); return [...(SRD || new Map()).values()].filter((m) => m.ed !== 2024 && /^beast/i.test(m.type) && m.cr === cr).sort((a, b) => a.name.localeCompare(b.name)); };
+  function summonFrom(sc, sp, cast, ctx, pick) {
     const S = SUMS.SUMMONS[sp.name.toLowerCase().replace(/[’]/g, "'")], caster = cast.caster; if (!S || !caster) return;
-    const f = S.forms[clamp(int(cast.option, 0), 0, S.forms.length - 1)], L = cast.at || sp.level || 1, mod = cast.mod || 0;
-    const n = clamp(S.n ? S.n(L, mod) : 1, 1, 10), owner = isPC(caster) ? caster.owner : '', made = [];
+    let f = S.forms[clamp(int(cast.option, 0), 0, S.forms.length - 1)]; const L = cast.at || sp.level || 1, mod = cast.mod || 0;
+    if (f.cr != null && !pick) { // ask which beast, then make them
+      const list = beastsOfCr(f.cr).slice(0, 8), to = cast.ws && cast.ws.user ? (cast.ws.user.isDM ? 'dm' : cast.ws.user.name.toLowerCase()) : null;
+      if (!list.length || !to) return;
+      const k = L >= 9 ? 4 : L >= 7 ? 3 : L >= 5 ? 2 : 1, sceneId = sc.id, casterId = caster.id;
+      ctx.lines.push(`🐾 ${caster.label || '?'} calls ${f.count * k} beast${f.count * k > 1 ? 's' : ''} of CR ${f.cr < 1 ? '1/' + 1 / f.cr : f.cr}: pick which kind`);
+      ask(to, { title: 'Conjure Animals', text: `Which beast? ${f.count * k} of them appear next to ${caster.label || 'you'}.`, buttons: list.map((m) => ({ label: m.name, value: m.id })) }, (v) => {
+        const scn = state.scenes[sceneId], c2 = scn && scn.tokens[casterId], m = v && list.find((x) => x.id === v); if (!scn || !c2 || !m) return;
+        const lines = []; summonFrom(scn, sp, { ...cast, caster: c2 }, { ...ctx, lines }, { f: { name: m.name, srd: m.id, init: 'roll' }, n: f.count * k });
+        post({ kind: 'chat', who: c2.owner && isPC(c2) ? c2.owner : 'Monsters', ...(isPC(c2) ? {} : { to: ['DM'] }), text: lines.join('\n'), time: Date.now(), cast: true }); save();
+      }, 60000);
+      return;
+    }
+    if (pick) f = pick.f;
+    const n = clamp(pick ? pick.n : S.n ? S.n(L, mod) : 1, 1, 32), owner = isPC(caster) ? caster.owner : '', made = [];
     for (let i = 0; i < n; i++) {
       if (Object.keys(sc.tokens).length >= 500) break;
       const mon = f.srd ? srdOf({ srd: f.srd }) : null, size = mon ? mon.token.size : S.size || 1;
@@ -1313,12 +1337,12 @@ function startServer({ port = 3000, host = '0.0.0.0', dataDir, dmKey, network = 
       const hp = mon ? mon.hp : S.object ? null : (f.hp || S.hp || (() => 10))(L, mod, caster.maxHp);
       const label = `${mon ? mon.name : S.label + (S.forms.length > 1 && !f.srd ? ' (' + f.name + ')' : '')}${n > 1 ? ' ' + (i + 1) : ''}`;
       const id = uid(), atk = cast.atk != null ? cast.atk : 5;
-      const attacks = mon ? [] : (f.attacks || []).map((a) => ({ name: a.name, dice: a.dice(L, mod), type: a.type, melee: !!a.melee, reach: a.reach || 5, range: a.range || 0, extra: a.extra || null }));
+      const attacks = mon ? attacksOf(mon) : (f.attacks || []).map((a) => ({ name: a.name, dice: a.dice(L, mod), type: a.type, melee: !!a.melee, reach: a.reach || 5, range: a.range || 0, extra: a.extra || null }));
       sc.tokens[id] = { id, ...tokenFields({ label: label.slice(0, 24), icon: mon ? mon.token.icon : S.icon || 'ghost', color: mon ? mon.token.color : S.color || '#7dd3fc', size, owner, x: at[0], y: at[1], hp, maxHp: hp, ac: mon ? mon.ac : S.object ? null : (f.ac || S.ac || (() => 10))(L, mod), srd: mon ? mon.id : null, light: S.light || undefined }, sc) };
       sc.tokens[id].initBonus = mon ? mon.token.init : caster.initBonus || 0;
-      sc.tokens[id].sum = { casterId: caster.id, init: S.init || null, by: ctx.by, spell: sp.name, conc: !!sp.conc && !S.keep, keep: !!S.keep, owner, attack: atk, attacks, multi: S.multi ? Math.max(1, S.multi(L)) : 1 };
+      sc.tokens[id].sum = { casterId: caster.id, init: f.init || S.init || null, by: ctx.by, spell: sp.name, conc: !!sp.conc && !S.keep, keep: !!S.keep, owner, attack: atk, attacks, multi: S.multi ? Math.max(1, S.multi(L)) : 1 };
       tokenChanged(sc, sc.tokens[id], null); made.push(sc.tokens[id]); summonToInit(sc, sc.tokens[id]);
-      if (S.zone) startPackZone(sc, sp, sc.tokens[id], S.zone, f, L, cast, ctx);
+      if (S.zone && !f.srd) startPackZone(sc, sp, sc.tokens[id], S.zone, f, L, cast, ctx);
     }
     if (made.length) ctx.lines.push(`✨ ${made.length > 1 ? made.length + ' × ' + made[0].label.replace(/ \d+$/, '') : made[0].label} appear${made.length > 1 ? '' : 's'} next to ${caster.label || '?'}${owner ? ' (drag to move; its attacks are under My character)' : ''}${made[0].sum.attacks.length && made[0].sum.multi > 1 ? ` · ${made[0].sum.multi} attacks a turn` : ''}`);
     if (visionOn(sc)) scheduleVision(sc);
@@ -1669,7 +1693,7 @@ function startServer({ port = 3000, host = '0.0.0.0', dataDir, dmKey, network = 
   }
 
   // ---------- who may join ----------
-  const tableSettings = () => ({ passcode: state.passcode, blocked: state.blocked, pins: Object.values(state.pins).map((p) => p.name) });
+  const tableSettings = () => ({ monsterHp: state.monsterHp || 'bar', passcode: state.passcode, blocked: state.blocked, pins: Object.values(state.pins).map((p) => p.name) });
 
   const wrongTries = new Map(); // address → { n, until }: slows down passcode guessing
   // Reveal (or cover) squares of fog, and send players what's now in view or gone from it.
@@ -1846,7 +1870,7 @@ function startServer({ port = 3000, host = '0.0.0.0', dataDir, dmKey, network = 
         const mine = !!s.owner, rolls = [], lines = [];
         const R2 = (e, l) => { const r = rollDice(e); rolls.push({ who: mine ? s.owner : 'Monsters', ...(mine ? {} : { to: ['DM'] }), label: str(l, 30), expr: e, ...r, private: false, time: Date.now(), skin: mine ? skinOf(s.owner) : null }); return r; };
         const melee = a.melee && (!a.range || sqDist(s, t) <= Math.max(1, a.reach / 5));
-        const at = attackRoll(sc, s, t, '1d20' + sgnS(s.sum.attack), { melee, range: melee ? null : a.range ? { normal: a.range, long: a.range } : null, reach: melee ? a.reach : null, weapon: a.name });
+        const at = attackRoll(sc, s, t, '1d20' + sgnS(a.bonus != null ? a.bonus : s.sum.attack), { melee, range: melee ? null : a.range ? { normal: a.range, long: a.long || a.range } : null, reach: melee ? a.reach : null, weapon: a.name });
         if (at.blocked || at.duplicate) { post({ kind: 'chat', who: mine ? s.owner : 'Monsters', ...(mine ? {} : { to: ['DM'] }), text: missWhy(at, t.label || '?'), time: Date.now(), cast: true }); break; }
         rolls.push({ who: mine ? s.owner : 'Monsters', ...(mine ? {} : { to: ['DM'] }), label: str(`${a.name} → ${t.label || '?'}`, 30), expr: at.expr, ...at.r, private: false, time: Date.now(), skin: mine ? skinOf(s.owner) : null });
         if (!at.hit) lines.push(`💨 ${s.label}'s ${a.name} misses ${t.label || '?'}`);
@@ -1929,10 +1953,25 @@ function startServer({ port = 3000, host = '0.0.0.0', dataDir, dmKey, network = 
         if (msg.type === 'combatStart' && !c.active) Object.assign(c, { active: true, round: 1, turnId: null, started: false, entries: [] });
         c.active = true;
         const ids = Array.isArray(msg.ids) ? msg.ids : [];
+        const had = new Set(c.entries.map((e) => e.id));
         for (const id of ids.slice(0, 200)) if (sc.tokens[id] && !c.entries.some((e) => e.id === id)) c.entries.push(entryFor(sc.tokens[id]));
         // a summon whose caster joins the fight comes with it
         for (const t of Object.values(sc.tokens)) if (t.sum && t.sum.init && ids.includes(t.sum.casterId) && !c.entries.some((e) => e.id === t.id)) c.entries.push(entryFor(t));
         sortCombat(sc); sendCombat(sc); save();
+        // 1.20: joining a fight that's already going: monsters roll at once (secretly), players are asked to roll
+        if (c.started) {
+          const late = c.entries.filter((e) => !had.has(e.id) && e.init == null && !(e.after && c.entries.some((x) => x.id === e.after)));
+          const mons = late.filter((e) => !sc.tokens[e.id].owner || sc.tokens[e.id].owner === '*').map((e) => e.id);
+          if (mons.length) handle(ws, { type: 'combatRoll', sceneId: sc.id, tokenIds: mons, onlyUnrolled: true });
+          for (const e of late) {
+            const t = sc.tokens[e.id]; if (!t || !t.owner || t.owner === '*' || !askable(t.owner.toLowerCase())) continue;
+            const sceneId = sc.id, tid = t.id;
+            ask(t.owner.toLowerCase(), { title: 'Initiative', text: `${t.label || 'Your token'} joins the fight. Roll initiative?`, buttons: [{ label: '🎲 Roll initiative', value: 'roll' }, { label: 'Later', value: '' }] }, (v, ws2) => {
+              const scn = state.scenes[sceneId], en = scn && scn.combat && scn.combat.entries.find((x) => x.id === tid);
+              if (v === 'roll' && ws2 && en && en.init == null) handle(ws2, { type: 'combatRoll', tokenIds: [tid] });
+            }, 60000);
+          }
+        }
         break;
       }
       case 'combatRemove':
@@ -2051,6 +2090,13 @@ function startServer({ port = 3000, host = '0.0.0.0', dataDir, dmKey, network = 
       }
 
       // ----- who may join (DM only) -----
+      case 'setMonsterHp': { // what players see of monsters' health, unless a token says otherwise
+        if (!u.isDM || !HP_SHOW.includes(msg.value)) return;
+        state.monsterHp = msg.value;
+        for (const scn of Object.values(state.scenes)) for (const t of Object.values(scn.tokens)) if (!t.owner && !t.hpShow) tokenChanged(scn, t, { ...t });
+        toDMs({ type: 'table', table: tableSettings() }); save();
+        break;
+      }
       case 'setPasscode':
         if (!u.isDM) return;
         state.passcode = str(msg.passcode, 40).trim();

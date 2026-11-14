@@ -57,7 +57,9 @@ const SUMMONS = {
   'conjure fey': { label: 'Fey Spirit', ...SPIRIT, icon: 'fairy', object: true,
     forms: [{ name: 'Fey', attacks: [{ name: 'Psychic strike', dice: (L, mod) => `${3 + 2 * (L - 6)}d12+${mod}`, type: 'psychic', melee: true }] }] },
   // the 2024 conjurings that are areas: a token to move, and the area goes with it
-  'conjure animals': { label: 'Spirit Pack', icon: 'wolf-head', color: '#7dd3fc', size: 2, object: true, forms: [{ name: 'Pack' }], zone: { radius: 10, save: 'DEX', dmg: (L) => ({ dice: `${3 + (L - 3)}d10`, type: 'slashing' }) } },
+  // 1.20: the 2014 version too (beasts by Challenge Rating, the caster picks which), twice as many at level 5, three times at 7, four at 9
+  'conjure animals': { label: 'Spirit Pack', icon: 'wolf-head', color: '#7dd3fc', size: 2, object: true, forms: [{ name: 'Spirit pack (2024)' },
+    { name: '2014: one beast of CR 2', cr: 2, count: 1 }, { name: '2014: two beasts of CR 1', cr: 1, count: 2 }, { name: '2014: four beasts of CR 1/2', cr: 0.5, count: 4 }, { name: '2014: eight beasts of CR 1/4', cr: 0.25, count: 8 }], zone: { radius: 10, save: 'DEX', dmg: (L) => ({ dice: `${3 + (L - 3)}d10`, type: 'slashing' }) } },
   'conjure elemental': { label: 'Elemental Spirit', icon: 'whirlwind', color: '#7dd3fc', size: 2, object: true,
     forms: [['Air', 'lightning'], ['Earth', 'thunder'], ['Fire', 'fire'], ['Water', 'cold']].map(([name, type]) => ({ name, type })), zone: { radius: 5, save: 'DEX', dmg: (L, f) => ({ dice: `${8 + (L - 5)}d8`, type: f.type }), start: true, add: ['restrained'] } },
   'dancing lights': { label: 'Dancing Light', icon: 'sparkles', color: '#fde68a', object: true, n: () => 4, light: [0, 10], forms: [{ name: 'Lights' }] },

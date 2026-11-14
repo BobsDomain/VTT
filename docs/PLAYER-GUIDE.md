@@ -64,7 +64,7 @@ The bar on the left of the map:
 
 - **Move** (`V`): drag your token. While dragging, it shows how far you've moved, and everyone sees it. Press `Space` mid-drag to go round a corner.
 - **Ruler** (`R`): drag to measure in feet; `Space` adds a corner. Everyone sees your ruler.
-- **Spell** (`T`): spell templates. Pick cone, sphere, cube, line or cylinder in the bar at the bottom, then drag from where the spell starts (or type the size and click). The squares it hits are shaded. Click one of yours to move it, drag its dot to aim or resize it, `Del` removes it. **Clear mine** removes all yours.
+- **Spell** (`T`): spell templates. Pick cone, sphere, cube, line or cylinder in the bar at the bottom. A cone or line starts at your token: drag the way it points (hold **Shift** to start it somewhere else). For the others, drag from where the spell starts (or type the size and click). The squares it hits are shaded. Click one of yours to move it, drag its dot to aim or resize it, `Del` removes it. **Clear mine** removes all yours.
 - **Door** (`D`): click a door you can see to open or close it.
 - **Ping** (`P`): click to flash a spot for everyone ("over here!"). `Alt`+click pings with any tool.
 
@@ -105,6 +105,8 @@ When the DM shows you a handout (a letter, a picture, a clue), it pops up on you
 - **Actions:** select your token for **🛡 Dodge**, **🏃 Disengage**, **🤝 Help**, **🫥 Hide**, **💨 Dash** and **⏳ Ready**.
 - **Rests:** spend Hit Dice from My character after a **☾ Short rest**.
 - **Reactions:** when a foe leaves your reach, a card asks if you want to make an opportunity attack; when someone nearby casts a spell and you have Counterspell, a card asks if you want to counter it. Click a button or let it time out.
+- **Party:** the **Party** panel shows everyone's hit points, most hurt first, so healers know who to help. Click a name to find them on the map.
+- **Joining late:** if you join a fight that's already going, a card asks you to roll initiative.
 - **Summons:** creatures you summon appear next to you. Drag them, and attack with them from **Your summons** in My character. In a fight, most summons go right after you; a familiar or undead rolls its own initiative when you click **🎲 Init**. Misty Step and Dimension Door ask you to click where you appear.
 
 ## Items from the DM

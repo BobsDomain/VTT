@@ -2,6 +2,25 @@
 
 All notable changes to Tabletop. Newest first. Each version's section is used as the release notes on GitHub.
 
+## [1.20.0] - 2026-11-14
+
+The first requests from the Telegram group.
+
+### Added
+- **Cones and lines start at the caster (#1):**
+  - **Players:** a cone or line starts at your own token.
+  - **The DM:** it starts at the selected token.
+  - **How:** drag the way it points. Shift+drag starts one anywhere else.
+- **Party panel (#2):** everyone sees every player character's HP, most hurt first, with conditions and death saves. Click a name to find them on the map.
+- **Hide monster HP for the whole table (#3):** **Players see monster HP** (a health bar, nothing, or the numbers) sets it for every monster and NPC at once. A token's own setting still wins.
+- **Joining a fight that's going (#5):**
+  - **Monsters** added to the initiative mid-fight roll straight away, secretly.
+  - **Players** get a card with a **Roll initiative** button.
+- **Conjure Animals, the 2014 way (#6):**
+  - **The choices:** besides the 2024 spirit pack, cast it as one beast of CR 2, two of CR 1, four of CR 1/2 or eight of CR 1/4 (twice as many with a level 5 slot, three times at 7, four times at 9).
+  - **Picking the beast:** the caster picks which beast from a card.
+- **Summoned monsters attack from their stat block:** conjured beasts, familiars, skeletons and zombies, from **Your summons**.
+
 ## [1.19.6] - 2026-11-14
 
 Checked against the 2014 Player's Handbook: all 361 of its spells, its buffs and its debuffs.

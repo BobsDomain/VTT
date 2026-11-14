@@ -246,7 +246,11 @@ Click **⚔ Encounter builder…** under Add tokens.
 
 **Hit points:** select a token to see its HP box. Library monsters come with their standard HP and initiative bonus; for others, type HP and max HP. To hurt or heal, type the amount and press **Damage** or **Heal** (Enter = damage, Shift+Enter = heal). Temporary HP soaks damage first. At 0 HP a token falls over in a pool of blood.
 
-**What players see of HP** is set per token under **Players see**: HP numbers, a health bar only, or nothing. By default player characters show numbers and everything else shows a bar.
+**What players see of HP:** **Players see monster HP** (under ⚔ Start combat, and under the initiative list) sets it for every monster and NPC at once: a health bar, nothing, or the numbers. One token's own **Players see** setting overrides it. Player characters always show their numbers.
+
+**Party:** the **Party** panel lists every player character on the map with their HP, most hurt first, plus their conditions and death saves. Click a name to find them on the map. Players see the same panel, so healers know who needs it.
+
+**Joining a fight already going:** add a token with **+ Selected** or **⚔ Add to initiative** and monsters roll their initiative straight away (secretly). A player gets a card asking them to roll.
 
 **Conditions:** click the icons under Conditions to toggle them; they appear on the token and in the initiative list.
 
@@ -268,7 +272,7 @@ Click **⚔ Encounter builder…** under Add tokens.
 - **Counterspell:** when someone casts a spell within 60 feet of a foe who has Counterspell (a player with a level 3+ slot, or a monster whose stat block lists it), that foe is asked first. The caster then makes a Constitution save; on a failure the spell fizzles and no slot is spent. Nobody answering within 15 seconds means no.
 - **Grapples:** a grappled creature can't move itself, and moves with its grappler. Pushed or teleported out of reach, it's free.
 
-**Summons and teleports:** Summon Beast, Find Familiar, Animate Dead, Spiritual Weapon, Bigby's Hand and the other summoning spells put their creatures next to the caster, owned by the caster's player. Their attacks are in the token panel and under **Your summons** in My character, and they vanish at 0 hit points or when concentration ends. In a fight they join the initiative: spirits from the Summon spells share their caster's score and go right after (shown with ↳), while familiars and undead roll their own (a monster's summon rolls secretly). Conjure Animals and Conjure Elemental make a token with an area that moves with it. Misty Step, Dimension Door and Steel Wind Strike ask the caster to click where to appear. Thunderwave, Gust of Wind and Weapon Mastery Push move the target.
+**Summons and teleports:** Summon Beast, Find Familiar, Animate Dead, Spiritual Weapon, Bigby's Hand and the other summoning spells put their creatures next to the caster, owned by the caster's player. Their attacks are in the token panel and under **Your summons** in My character, and they vanish at 0 hit points or when concentration ends. In a fight they join the initiative: spirits from the Summon spells share their caster's score and go right after (shown with ↳), while familiars and undead roll their own (a monster's summon rolls secretly). Conjure Animals and Conjure Elemental make a token with an area that moves with it. Conjure Animals also offers the 2014 version when cast: pick one beast of CR 2, two of CR 1, four of CR 1/2 or eight of CR 1/4 (more at higher levels), and the caster picks which beast from a card. The beasts come with their attacks, like familiars and skeletons. Misty Step, Dimension Door and Steel Wind Strike ask the caster to click where to appear. Thunderwave, Gust of Wind and Weapon Mastery Push move the target.
 
 ## Items
 
@@ -295,7 +299,7 @@ The bar on the left of the map in Play mode has the tools you and the players us
 
 **Diagonals:** by default every square counts 5 ft, diagonals too (the 5e rule). For the 5 / 10 / 5 variant, set **Ruler diagonals** in Build map → map settings. It's per map.
 
-**Spell templates:** pick the shape in the bar at the bottom of the map. Drag from where the spell starts and let go: the drag sets the direction and size (a sphere's or cylinder's drag sets its radius; a cube goes from one corner to the opposite one). Or type the size and just click. The squares it covers are shaded. Click a template to select it: drag to move it, drag its dot to re-aim or resize, `Del` removes it. You can change or remove anyone's; **Clear all** removes every template on the map. Players' templates are in their own colour, with their name when selected.
+**Spell templates:** pick the shape in the bar at the bottom of the map. A **cone** or **line** starts at the selected token (for players, at their own token): drag the way it points. Hold **Shift** to start one anywhere else. For other shapes, drag from where the spell starts and let go: the drag sets the direction and size (a sphere's or cylinder's drag sets its radius; a cube goes from one corner to the opposite one). Or type the size and just click. The squares it covers are shaded. Click a template to select it: drag to move it, drag its dot to re-aim or resize, `Del` removes it. You can change or remove anyone's; **Clear all** removes every template on the map. Players' templates are in their own colour, with their name when selected.
 
 **Labels and notes:** with the Label tool, click the map, type the text, pick a size and press Enter. Tick **DM note** for something only you see (shown as a yellow sticky note): trap DCs, what's in the chest, reminders. Drag a label to move it; click it to edit or delete it. With fog of war on, players see a label once its square is revealed.
 
