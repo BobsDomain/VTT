@@ -2,6 +2,13 @@
 
 All notable changes to Tabletop. Newest first. Each version's section is used as the release notes on GitHub.
 
+## [1.20.1] - 2026-11-14
+
+### Added
+- **New versions are announced in Telegram:**
+  - **What gets posted:** when a release is published, the bot posts it in the group: the headlines, the requests it finishes, and links to the installers and the player guide.
+  - **The channel too:** set `TELEGRAM_ANNOUNCE_CHAT_ID` to post there instead (see `docs/TELEGRAM-BOT.md`).
+
 ## [1.20.0] - 2026-11-14
 
 The first requests from the Telegram group.

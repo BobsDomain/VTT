@@ -78,6 +78,16 @@ From now on, the GitHub backup sees that the Worker is answering and leaves the 
 
 When a new Tabletop version changes the bot, the release notes say so. Open the Worker → **Edit code**, paste the new `bot/worker.js` and **Deploy**. Your settings stay.
 
+## New versions in the group
+
+When you publish a release (tag and push), the release workflow posts it in the group. The post has the headlines from the changelog, the requests it finishes (the `(#2)` numbers), and links to the installers and the player guide. It uses the same `TELEGRAM_TOKEN` secret and `TELEGRAM_CHAT_ID` variable as the bot on GitHub, so there's nothing to set up.
+
+**To post in your channel as well, or instead:**
+1. Add the bot to the channel as an **administrator**, with permission to post messages.
+2. On GitHub, under **Settings → Secrets and variables → Actions → Variables**, add `TELEGRAM_ANNOUNCE_CHAT_ID`. Its value is where to post: the channel's public name (like `@tabletopvtt`), its `-100…` id, or several separated by commas. For the group and the channel, use `-944196680,@tabletopvtt`.
+
+If the post fails (the bot isn't in the chat, say), the release still goes out; the workflow's **Tell the Telegram group** step shows why.
+
 ## Looking after the requests
 
 Every request is a GitHub issue with the **feature-request** label.

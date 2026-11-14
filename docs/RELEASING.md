@@ -88,3 +88,7 @@ pip install markdown playwright
 playwright install chromium
 npm run guides
 ```
+
+## The Telegram announcement
+
+After the release is published, the workflow's last step (`scripts/announce.mjs`) posts it in the Telegram group: the changelog headlines, the requests it finishes and the download links. Write the changelog section with that in mind: each top-level bullet's **bold** part is its headline, and `(#n)` marks a request it finishes.

@@ -95,3 +95,11 @@ jobs:
           # always published under a lowercase v tag (the apps' update check downloads from .../download/v1.2.3/),
           # on the same commit as the pushed tag, even when that was V1.2.3
           gh release create "v$v" --target "${GITHUB_SHA}" dist/release/*.exe dist/release/*.zip dist/release/*.pdf --title "Tabletop $v" --notes-file "dist/RELEASE_NOTES-$v.md" --latest
+      # the Telegram group hears about it (the bot's token and group are the ones set up for the requests bot)
+      - name: Tell the Telegram group
+        continue-on-error: true
+        env:
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ vars.TELEGRAM_CHAT_ID }}
+          TELEGRAM_ANNOUNCE_CHAT_ID: ${{ vars.TELEGRAM_ANNOUNCE_CHAT_ID }}
+        run: node scripts/announce.mjs
