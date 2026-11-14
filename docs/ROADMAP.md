@@ -40,6 +40,9 @@ Status: ✅ done · 🔨 in progress · 📋 planned · 💬 to discuss
 
 ## Next
 
+Ideas from the group come in through the [Telegram bot](TELEGRAM-BOT.md) and are listed, with their votes, in [REQUESTS.md](REQUESTS.md) (it appears after the first request). The ones picked go into a release below.
+
+
 The wish list, in the order we plan to build it. Each phase is one release; the order can change if the group needs something sooner.
 
 ### Parked — more map art 📋

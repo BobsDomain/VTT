@@ -1,0 +1,43 @@
+# The Telegram bot (scripts/telegram-bot.js): every 10 minutes it reads the group's new messages, turns /request into
+# GitHub issues, answers /new and /download, and keeps docs/REQUESTS.md up to date. Set up: docs/TELEGRAM-BOT.md.
+name: Telegram bot
+
+on:
+  schedule:
+    - cron: '*/10 * * * *'
+  workflow_dispatch: # run it now from the Actions tab (also how you find the group's chat id)
+
+permissions:
+  contents: write
+  issues: write
+
+concurrency:
+  group: telegram-bot
+  cancel-in-progress: false
+
+jobs:
+  bot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - name: Read the group and answer
+        env:
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ vars.TELEGRAM_CHAT_ID }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          if [ -z "$TELEGRAM_TOKEN" ]; then echo "No TELEGRAM_TOKEN secret yet: see docs/TELEGRAM-BOT.md"; exit 0; fi
+          node scripts/telegram-bot.js
+      - name: Save the requests list
+        run: |
+          if [ -n "$(git status --porcelain docs/REQUESTS.md)" ]; then
+            git config user.name "tabletop-bot"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add docs/REQUESTS.md
+            git commit -m "Requests list: updated from the Telegram group"
+            git pull --rebase && git push
+          fi

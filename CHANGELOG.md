@@ -2,6 +2,15 @@
 
 All notable changes to Tabletop. Newest first. Each version's section is used as the release notes on GitHub.
 
+## [1.19.4] - 2026-11-14
+
+### Added
+- **A Telegram bot for the group:**
+  - **Requests:** `/request` to ask for a feature, `/requests` to see what's been asked, and `/upvote` to vote.
+  - **Questions:** it answers "what's new?" and "where do I download it?".
+  - **Where requests go:** each one becomes a GitHub issue and appears in `docs/REQUESTS.md`.
+  - **Setting it up:** see `docs/TELEGRAM-BOT.md`.
+
 ## [1.19.3] - 2026-11-14
 
 ### Changed
@@ -9,6 +18,7 @@ All notable changes to Tabletop. Newest first. Each version's section is used as
   - **At every release:** the release build makes them fresh from the DM and player guides, so the PDF in **Help** always matches that version of the app.
   - **On the release page:** each GitHub release now carries `Tabletop-DM-Guide.pdf` and `Tabletop-Player-Guide.pdf` too.
   - **Newest online:** **Help → Newest guides online (PDF)** opens the newest one even before you update.
+
 
 ## [1.19.2] - 2026-11-14
 
