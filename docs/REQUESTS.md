@@ -8,3 +8,4 @@ Feature requests sent to the Tabletop Telegram bot (`/request`). The bot keeps t
 | [#2](https://github.com/CPSDomain/VTT/issues/2) | Healer needs a view for all players and DM would need to see all player HP as well | 1 | 💡 Requested |
 | [#3](https://github.com/CPSDomain/VTT/issues/3) | Option to hide hp bar of npcs | 1 | 💡 Requested |
 | [#4](https://github.com/CPSDomain/VTT/issues/4) | Option to undock windows from sidebar to free-floating windows or re-dockable elsewhere | 1 | 💡 Requested |
+| [#5](https://github.com/CPSDomain/VTT/issues/5) | If a player or monster enters combat that is already going on. they should be allowed to r | 1 | 💡 Requested |
