@@ -1,0 +1,25 @@
+# Posts a release's announcement in the Telegram group again, without rebuilding anything.
+# Actions → "Announce a release" → Run workflow. Leave the version empty for the one in package.json.
+name: Announce a release
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to announce, e.g. 1.20.2 (empty = the current one)'
+        required: false
+        default: ''
+jobs:
+  announce:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Tell the Telegram group
+        env:
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ vars.TELEGRAM_CHAT_ID }}
+          TELEGRAM_ANNOUNCE_CHAT_ID: ${{ vars.TELEGRAM_ANNOUNCE_CHAT_ID }}
+          ANNOUNCE_VERSION: ${{ inputs.version }}
+        run: node scripts/announce.mjs

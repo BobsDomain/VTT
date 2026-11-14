@@ -10,7 +10,7 @@ const chats = String(process.env.TELEGRAM_ANNOUNCE_CHAT_ID || process.env.TELEGR
 if (!token || !chats.length) { console.log('No TELEGRAM_TOKEN or chat: nothing to announce'); process.exit(0); }
 
 const pkg = JSON.parse(fs.readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
-const v = pkg.version, repo = 'CPSDomain/VTT';
+const v = String(process.env.ANNOUNCE_VERSION || pkg.version).replace(/^v/, ''), repo = 'CPSDomain/VTT';
 const log = fs.readFileSync(new URL('../CHANGELOG.md', import.meta.url), 'utf8');
 const start = log.indexOf(`## [${v}]`); if (start < 0) { console.log(`No CHANGELOG section for ${v}`); process.exit(0); }
 const next = log.indexOf('\n## [', start + 1), section = log.slice(start, next < 0 ? undefined : next);

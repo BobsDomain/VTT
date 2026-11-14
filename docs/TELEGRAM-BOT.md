@@ -28,7 +28,7 @@ Plain questions ("what's new?") get an answer when they end in a question mark, 
 1. **Make the bot.** With **@BotFather**: `/newbot`, then `/setprivacy` → your bot → **Disable** (so it sees "what's new?", not only commands).
 2. **Add it to your group.** It has to be a group: members can't post in a channel. A channel's discussion group works.
 3. **On GitHub,** under **Settings → Secrets and variables → Actions**:
-   - **Secret** `TELEGRAM_TOKEN`: the bot's token.
+   - **Secret** `TELEGRAM_TOKEN`: the bot's token. If you ever make a new token in @BotFather, update it here **and** in Cloudflare, or the release announcements stop.
    - **Variable** `TELEGRAM_CHAT_ID`: the group's id (`-944196680`).
 
    To find a group's id, send a message there and open `https://api.telegram.org/bot<token>/getUpdates` in your browser; look for `"chat":{"id":…`.
