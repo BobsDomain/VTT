@@ -79,10 +79,12 @@ The apps aren't code-signed, so Windows shows "Windows protected your PC" the fi
 
 ## The PDF guides
 
-The apps ship `public/guides/Tabletop-DM-Guide.pdf` and `Tabletop-Player-Guide.pdf` (Help → Download the … guide). After changing `docs/DM-GUIDE.md` or `docs/PLAYER-GUIDE.md`, make them again before tagging:
+The apps ship `public/guides/Tabletop-DM-Guide.pdf` and `Tabletop-Player-Guide.pdf` (Help → Download the … guide), and every GitHub release carries them too, so `releases/latest/download/Tabletop-DM-Guide.pdf` is always the newest.
+
+The release workflow makes them fresh from `docs/DM-GUIDE.md` and `docs/PLAYER-GUIDE.md` on every tag, so they always match the version. Whenever a guide changes, make them locally too (`npm run guides`) and commit them: those are what the apps fall back on if the workflow's PDF step ever fails.
 
 ```
 pip install markdown playwright
 playwright install chromium
-python build/make-guides.py
+npm run guides
 ```

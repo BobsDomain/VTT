@@ -36,6 +36,18 @@ jobs:
             echo "npm ci failed (attempt $i), retrying in 20 seconds…"; sleep 20
           done
           exit 1
+      # the PDF guides in Help are made fresh from docs/DM-GUIDE.md and docs/PLAYER-GUIDE.md for every release,
+      # so they always match the version; if this fails, the ones in public/guides (made by hand) are used
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Make the PDF guides
+        shell: bash
+        continue-on-error: true
+        run: |
+          pip install markdown playwright
+          for i in 1 2 3; do python -m playwright install chromium && break; echo "retrying in 20 seconds…"; sleep 20; done
+          python build/make-guides.py
       - name: Build Tabletop DM
         run: npx electron-builder --win --config build/dm.json --publish never
         env:
@@ -44,6 +56,9 @@ jobs:
         run: npx electron-builder --win --config build/player.json --publish never
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: false
+      - name: Keep the PDF guides with the apps
+        shell: bash
+        run: mkdir -p dist/guides && cp public/guides/*.pdf dist/guides/
       - uses: actions/upload-artifact@v4
         with:
           name: apps-win
@@ -52,6 +67,7 @@ jobs:
             dist/dm/*.zip
             dist/player/*.exe
             dist/player/*.zip
+            dist/guides/*.pdf
           if-no-files-found: error
 
   release:
@@ -78,4 +94,4 @@ jobs:
           v=$(node -p "require('./package.json').version")
           # always published under a lowercase v tag (the apps' update check downloads from .../download/v1.2.3/),
           # on the same commit as the pushed tag, even when that was V1.2.3
-          gh release create "v$v" --target "${GITHUB_SHA}" dist/release/*.exe dist/release/*.zip --title "Tabletop $v" --notes-file "dist/RELEASE_NOTES-$v.md" --latest
+          gh release create "v$v" --target "${GITHUB_SHA}" dist/release/*.exe dist/release/*.zip dist/release/*.pdf --title "Tabletop $v" --notes-file "dist/RELEASE_NOTES-$v.md" --latest

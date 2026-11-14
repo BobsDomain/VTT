@@ -40,7 +40,11 @@ fs.rmSync(out, { recursive: true, force: true });
 fs.mkdirSync(out, { recursive: true });
 for (const [src, name] of present) fs.copyFileSync(src, path.join(out, name));
 
-const rows = present.map(([, name, , what]) => `| \`${name}\` | ${what} |`).join('\n');
+// the PDF guides (made fresh by the workflow from docs/*-GUIDE.md), under fixed names so .../releases/latest/download/ finds them
+const guides = [['Tabletop-DM-Guide.pdf', 'The DM: the DM guide (PDF)'], ['Tabletop-Player-Guide.pdf', 'Players: the player guide (PDF)']]
+  .map(([name, what]) => [[path.join(root, 'dist', 'guides', name), path.join(root, 'public', 'guides', name)].find((f) => fs.existsSync(f)), name, false, what]).filter(([src]) => src);
+for (const [src, name] of guides) fs.copyFileSync(src, path.join(out, name));
+const rows = [...present, ...guides].map(([, name, , what]) => `| \`${name}\` | ${what} |`).join('\n');
 const notes = `${body}
 
 ## Download

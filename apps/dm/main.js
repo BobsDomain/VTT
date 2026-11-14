@@ -107,6 +107,7 @@ async function boot() {
       { label: 'Check for updates…', click: () => checkForUpdates(win, { manual: true }) },
       { label: 'Download the DM guide (PDF)…', click: () => saveGuide(win, 'dm') },
       { label: 'Download the player guide (PDF)…', click: () => saveGuide(win, 'player') },
+      { label: 'Newest guides online (PDF)', click: () => shell.openExternal('https://github.com/CPSDomain/VTT/releases/latest/download/Tabletop-DM-Guide.pdf') },
       { label: 'Guides and releases on GitHub', click: () => shell.openExternal('https://github.com/CPSDomain/VTT') },
       { type: 'separator' },
       { label: 'Server info', click: () => dialog.showMessageBox(win, {
