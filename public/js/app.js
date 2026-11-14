@@ -10,6 +10,7 @@ import { buildChunk, drawTokenRing } from './art2.js';
 import { createDice, SKINS, skinById, defaultSkin } from './dice3d.js';
 import { createFx, SPELLS, LIVE_CONDITIONS } from './fx.js';
 import { createLife } from './life.js';
+import { initPanels, resetPanels } from './panels.js';
 
 const $ = (id) => document.getElementById(id);
 const canvas = $('c'), ctx = canvas.getContext('2d');
@@ -50,6 +51,7 @@ function onMessage(msg) {
     case 'welcome': {
       me.isDM = msg.isDM; me.name = msg.name;
       document.body.classList.toggle('dm', me.isDM);
+      initPanels(me.isDM); // side panels where they were left: docked in order, or floating
       pinSet = !!msg.pinSet;
       const st = msg.state;
       if (st.table) { table = st.table; syncMonHp(); }
@@ -3866,7 +3868,7 @@ function start(name) {
 }
 
 setTerrain('stone'); setPropKind('door'); setTool('select'); updateUndo(); resize();
-window.tabletop = { view, sound: snd, diceBusy: () => dice3d.busy(), chunksPending: () => chunkWant.length + chunkJobs.size + (chunkTimer ? 1 : 0), chunkInfo: () => ({ built: chunks.size, workers: (chunkWorkers || []).length, fx: fxMode() }), renderTime: () => { mapRev++; const t0 = performance.now(); render(); return performance.now() - t0; }, frameTime: () => { const t0 = performance.now(); render(); return performance.now() - t0; }, scene: () => sc(), cellToScreen: (x, y) => { const r = canvas.getBoundingClientRect(); return [r.left + view.x + (x + 0.5) * CELL * view.zoom, r.top + view.y + (y + 0.5) * CELL * view.zoom]; } };
+window.tabletop = { resetPanels, view, sound: snd, diceBusy: () => dice3d.busy(), chunksPending: () => chunkWant.length + chunkJobs.size + (chunkTimer ? 1 : 0), chunkInfo: () => ({ built: chunks.size, workers: (chunkWorkers || []).length, fx: fxMode() }), renderTime: () => { mapRev++; const t0 = performance.now(); render(); return performance.now() - t0; }, frameTime: () => { const t0 = performance.now(); render(); return performance.now() - t0; }, scene: () => sc(), cellToScreen: (x, y) => { const r = canvas.getBoundingClientRect(); return [r.left + view.x + (x + 0.5) * CELL * view.zoom, r.top + view.y + (y + 0.5) * CELL * view.zoom]; } };
 const preset = params.get('name') || (dmKey ? 'DM' : '');
 if (preset) start(preset);
 else {

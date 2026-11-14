@@ -284,6 +284,16 @@ Select a token and click **📷 Picture…** to turn any picture into a round to
 
 **Players** click their own token to get the same HP box for their character: they can track their own damage, temp HP, initiative bonus and conditions (but nobody else's). Monsters they can't see (hidden, or in the fog) don't appear in their initiative list.
 
+## Arranging the side panels
+
+Every panel on the right (Initiative, Party, Selected token, Dice, Items, Handouts, My character, chat and the rest) can float over the map. Hover over a panel's title to see two small buttons:
+
+- **⧉** pops it out into its own window. Drag the window by its title bar and resize it from the bottom-right corner.
+- **⇲** puts it back in the sidebar, where it was. You can also drag the window's title bar onto the sidebar, and it docks wherever you let go.
+- **⠿** (drag it) moves a panel up or down the sidebar.
+
+A floating panel only shows when it has something to show: the initiative during a fight, the selected token when one is selected. The layout is remembered on this PC. **View → Put all panels back in the sidebar** resets it.
+
 ## Table tools
 
 The bar on the left of the map in Play mode has the tools you and the players use during play. `Esc` always goes back to **Move**.

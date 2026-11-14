@@ -58,6 +58,16 @@ You get your portrait, hit points, AC, speed, initiative and darkvision, and a b
 - **Chests:** click one with the **Door** tool to open it.
 - **Handouts** the DM shows fill your screen; click to close, and find them again under **Handouts**.
 
+## Arranging the side panels
+
+Every panel on the right (My character, Party, Dice, Initiative, your quick rolls, chat and the rest) can float over the map. Hover over a panel's title to see two small buttons:
+
+- **⧉** pops it out into its own window. Drag the window by its title bar and resize it from the bottom-right corner.
+- **⇲** puts it back in the sidebar, where it was. You can also drag the window's title bar onto the sidebar, and it docks wherever you let go.
+- **⠿** (drag it) moves a panel up or down the sidebar.
+
+A floating panel only shows when it has something to show: the initiative during a fight, the selected token when one is selected. The layout is remembered on this PC. **View → Put all panels back in the sidebar** resets it.
+
 ## Table tools
 
 The bar on the left of the map:

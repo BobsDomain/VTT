@@ -202,6 +202,29 @@
   .macro button.x { color:var(--dim); padding:6px 7px; border-left:1px solid var(--line); }
   .macro button.x:hover { color:#f87171; }
   .macro small { color:var(--dim); margin-left:4px; }
+  /* 1.20.1: side panels that pop out into floating windows (public/js/panels.js) */
+  aside > #chatSec { flex:1 1 auto; display:flex; flex-direction:column; min-height:0; padding:0; border:0; }
+  #chatSec > .chathead { display:none; }
+  aside .scroll > section, #chatSec { position:relative; }
+  .panbtns { position:absolute; top:7px; right:8px; display:flex; gap:2px; opacity:0; transition:opacity .15s; z-index:2; }
+  aside section:hover > .panbtns, .panbtns:focus-within { opacity:1; }
+  .panbtns button { padding:0 5px; height:20px; min-width:0; font-size:12px; line-height:18px; background:transparent; border:1px solid transparent; color:var(--dim); }
+  .panbtns button:hover { border-color:var(--line); color:var(--fg, #eee); }
+  .panbtns .grip { cursor:grab; }
+  #chatSec > .panbtns { top:auto; bottom:auto; right:12px; margin-top:4px; }
+  aside section.dropbefore { box-shadow:inset 0 3px 0 var(--accent); } aside section.dropafter { box-shadow:inset 0 -3px 0 var(--accent); }
+  aside section.dragging { opacity:.45; }
+  #floats { position:fixed; inset:0; pointer-events:none; z-index:25; }
+  .floatwin { position:absolute; pointer-events:auto; background:var(--panel); border:1px solid var(--line); border-radius:8px; box-shadow:0 14px 40px rgba(0,0,0,.55); display:flex; flex-direction:column; resize:both; overflow:hidden; min-width:220px; min-height:90px; max-width:96vw; max-height:92vh; }
+  .floatwin > .fwbar { display:flex; align-items:center; gap:6px; padding:5px 6px 5px 10px; background:rgba(255,255,255,.04); border-bottom:1px solid var(--line); cursor:move; user-select:none; flex:0 0 auto; }
+  .floatwin > .fwbar b { flex:1; font-size:11px; text-transform:uppercase; letter-spacing:.09em; color:var(--accent2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .floatwin > .fwbar button { padding:0 6px; height:22px; font-size:12px; }
+  .floatwin > .fwbody { flex:1 1 auto; overflow:auto; min-height:0; display:flex; flex-direction:column; }
+  .floatwin > .fwbody > section { border-bottom:0; flex:1 1 auto; }
+  .floatwin > .fwbody > section > h2:first-of-type, .floatwin > .fwbody > section > .panbtns { display:none; }
+  .floatwin #chatSec { display:flex; flex-direction:column; min-height:0; }
+  .floatwin[hidden] { display:none !important; }
+  aside.dockhere { outline:2px dashed var(--accent); outline-offset:-4px; }
   #log { flex:1; overflow-y:auto; padding:12px; display:flex; flex-direction:column; gap:7px; min-height:120px; }
   .entry { background:var(--panel2); border-radius:7px; padding:8px 10px; user-select:text; }
   .entry b { color:var(--accent2); }
@@ -823,7 +846,7 @@
         <h2>My character</h2>
         <div id="charBody"></div>
       </section>
-      <section>
+      <section id="diceSec">
         <h2>Dice</h2>
         <div class="dice">
           <button data-roll="1d4">d4</button><button data-roll="1d6">d6</button><button data-roll="1d8">d8</button><button data-roll="1d10">d10</button>
@@ -834,14 +857,14 @@
         <div class="myDice"><canvas id="myDicePrev" width="68" height="68"></canvas><button id="openSkins" title="How your dice look when they roll on everyone's screen">My dice…</button></div>
       </section>
 
-      <section>
+      <section id="macroSec">
         <h2>My quick rolls</h2>
         <div id="macros"></div>
         <form id="macroForm" class="row"><input id="mLabel" placeholder="Longsword hit"><input id="mExpr" placeholder="1d20+5" style="flex:0 0 78px"><button class="fixed" title="Save quick roll">+</button></form>
         <div class="hint">Copy bonuses from D&amp;D Beyond once. Shift-click: advantage · Alt-click: disadvantage.</div>
       </section>
 
-      <section class="dm-only">
+      <section id="addSec" class="dm-only">
         <h2>Add tokens</h2>
         <div class="artrow"><canvas id="artPreview" width="88" height="88"></canvas>
           <div style="flex:1;min-width:0"><div id="artName" style="font-weight:600;margin-bottom:6px">Plain token</div><button id="openLib" class="primary" style="width:100%">Token library…</button></div></div>
@@ -853,11 +876,14 @@
         <div class="hint">Or pick the Token tool in Build mode and click to place. Drop image files on the map to make tokens from them.</div>
       </section>
     </div>
+    <section id="chatSec">
+    <h2 class="chathead">Chat and rolls</h2>
     <div id="log"></div>
     <form id="chatForm" autocomplete="off">
       <div class="row" style="margin:0"><select id="chatTo" title="Who hears it: everyone, or a whisper to one person"></select><select id="chatAs" class="dm-only" title="Speak as yourself, or as a character (an NPC or monster)"></select></div>
       <div class="row"><input id="chatText" maxlength="1000" placeholder="Say something…" title="Enter sends. /w Name message whispers; /r 1d20+3 rolls"><button type="button" id="chatRead" class="fixed dm-only" title="Read aloud: show this text to everyone in the middle of their screen, like a page from a book">📜</button><button class="fixed primary" title="Send (Enter)">Send</button></div>
     </form>
+    </section>
   </aside>
 </main>
 
@@ -983,6 +1009,7 @@
   <div class="row"><button class="primary">Join</button></div>
 </form></div>
 <div id="toast"></div>
+<div id="floats"></div>
 <div id="prompts"></div>
 
 <div class="modal" id="libModal" hidden>

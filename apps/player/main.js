@@ -39,6 +39,7 @@ function create() {
     { label: 'View', submenu: [
       { role: 'reload' }, { role: 'togglefullscreen' }, { type: 'separator' },
       { role: 'zoomIn' }, { role: 'zoomOut' }, { role: 'resetZoom' }, { type: 'separator' },
+      { label: 'Put all panels back in the sidebar', click: () => win && win.webContents.executeJavaScript('window.tabletop && window.tabletop.resetPanels()').catch(() => {}) }, { type: 'separator' },
       { role: 'toggleDevTools' }
     ] },
     { label: 'Help', submenu: [

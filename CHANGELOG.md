@@ -2,6 +2,16 @@
 
 All notable changes to Tabletop. Newest first. Each version's section is used as the release notes on GitHub.
 
+## [1.20.2] - 2026-11-15
+
+The last of the group's first requests.
+
+### Added
+- **Side panels as floating windows (#4):**
+  - **Pop out and back:** every panel on the right, chat included, pops out with **⧉** into a window you can move and resize over the map, and **⇲** (or dropping it on the sidebar) puts it back.
+  - **Reordering:** drag **⠿** to put the sidebar panels in the order you like.
+  - **Remembered:** the layout is kept on each PC, for the DM and for players. **View → Put all panels back in the sidebar** resets it.
+
 ## [1.20.1] - 2026-11-14
 
 ### Added
