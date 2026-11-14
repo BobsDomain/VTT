@@ -34,6 +34,7 @@ jobs:
         env:
           TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ vars.TELEGRAM_CHAT_ID }}
+          REQUESTS_PER_DAY: ${{ vars.REQUESTS_PER_DAY }}
           GITHUB_TOKEN: ${{ github.token }}
         run: |
           if [ -z "$TELEGRAM_TOKEN" ]; then echo "No TELEGRAM_TOKEN secret yet: see docs/TELEGRAM-BOT.md"; exit 0; fi

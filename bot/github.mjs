@@ -9,7 +9,7 @@ import { fileURLToPath } from 'node:url';
 import { createBot } from './core.mjs';
 
 const FILE = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'docs', 'REQUESTS.md');
-const bot = createBot({ telegramToken: process.env.TELEGRAM_TOKEN, githubToken: process.env.GITHUB_TOKEN, repo: process.env.GITHUB_REPOSITORY, chats: process.env.TELEGRAM_CHAT_ID });
+const bot = createBot({ telegramToken: process.env.TELEGRAM_TOKEN, githubToken: process.env.GITHUB_TOKEN, repo: process.env.GITHUB_REPOSITORY, chats: process.env.TELEGRAM_CHAT_ID, perDay: process.env.REQUESTS_PER_DAY });
 const listOnly = process.argv.includes('--list');
 
 if (!listOnly && process.env.TELEGRAM_TOKEN) {

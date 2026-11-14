@@ -10,9 +10,11 @@
 //   /help             these commands
 
 export const LABEL = 'feature-request', PLANNED = 'planned', DONE = 'done';
-const PER_DAY = 3, MIN_LEN = 10;
+const MIN_LEN = 10;
 
-export function createBot({ telegramToken, githubToken, repo, chats }) {
+export function createBot({ telegramToken, githubToken, repo, chats, perDay }) {
+  // requests per person per day (REQUESTS_PER_DAY, default 10; 0 = no limit). The group's owner and admins have no limit.
+  const PER_DAY = perDay == null || String(perDay).trim() === '' || isNaN(Number(perDay)) ? 10 : Number(perDay);
   const CHATS = String(chats || '').split(',').map((s) => s.trim()).filter(Boolean);
 
   async function tg(method, body = {}) {
@@ -65,6 +67,10 @@ export function createBot({ telegramToken, githubToken, repo, chats }) {
     return true;
   }
 
+  async function isAdmin(u) {
+    for (const c of CHATS) { try { const s = await tg('getChatMember', { chat_id: c, user_id: u.id }); if (['creator', 'administrator'].includes(s.status)) return true; } catch { /* not there */ } }
+    return false;
+  }
   async function onRequest(m, text) {
     const u = m.from;
     if (text.length < MIN_LEN) return reply(m, `Tell me a bit more: <code>/request</code> and the idea, at least ${MIN_LEN} characters. For example <i>/request Let players draw on the map</i>`);
@@ -72,7 +78,7 @@ export function createBot({ telegramToken, githubToken, repo, chats }) {
     const tag = `${m.chat.id}:${m.message_id}`;
     if (all.some((i) => (meta(i.body) || {}).msg === tag)) return; // handled already (Telegram sent it twice)
     const today = new Date().toISOString().slice(0, 10);
-    if (all.filter((i) => (meta(i.body) || {}).user === u.id && i.created_at.slice(0, 10) === today).length >= PER_DAY) return reply(m, `That's ${PER_DAY} requests from you today, thanks! Send the next one tomorrow.`);
+    if (PER_DAY > 0 && all.filter((i) => (meta(i.body) || {}).user === u.id && i.created_at.slice(0, 10) === today).length >= PER_DAY && !(await isAdmin(u))) return reply(m, `That's ${PER_DAY} requests from you today, thanks! Send the next one tomorrow.`);
     const dup = similar(text, all.filter((i) => i.state === 'open'));
     if (dup) {
       const added = await vote(dup, u);

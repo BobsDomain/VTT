@@ -18,7 +18,7 @@ It runs on **Cloudflare Workers** (free), so it answers within a second or two a
 
 **Spam control:**
 - **Who:** only your group counts, plus private messages from its members.
-- **How many:** each person can send 3 requests a day.
+- **How many:** each person can send 10 requests a day; the group's owner and admins have no limit. To change it, add a variable `REQUESTS_PER_DAY` in Cloudflare (and on GitHub) with the number you want, or `0` for no limit.
 - **How short:** requests need at least 10 characters.
 
 Plain questions ("what's new?") get an answer when they end in a question mark, mention the bot, or reply to it.

@@ -5,6 +5,7 @@
 //   GITHUB_TOKEN (secret)       a fine-grained GitHub token: the VTT repository, Issues read and write, Contents read
 //   WEBHOOK_SECRET (secret)     any long random word; Telegram sends it with every message so strangers can't
 //   TELEGRAM_CHAT_ID (text)     the group's id, e.g. -944196680
+//   REQUESTS_PER_DAY (text)     optional: requests per person per day (default 10, 0 = no limit; group admins have none)
 //   GITHUB_REPOSITORY (text)    CPSDomain/VTT
 // Then open https://<your worker>.workers.dev/setup?key=<WEBHOOK_SECRET> once: it points Telegram at the Worker.
 
@@ -22,9 +23,11 @@
 //   /help             these commands
 
 const LABEL = 'feature-request', PLANNED = 'planned', DONE = 'done';
-const PER_DAY = 3, MIN_LEN = 10;
+const MIN_LEN = 10;
 
-function createBot({ telegramToken, githubToken, repo, chats }) {
+function createBot({ telegramToken, githubToken, repo, chats, perDay }) {
+  // requests per person per day (REQUESTS_PER_DAY, default 10; 0 = no limit). The group's owner and admins have no limit.
+  const PER_DAY = perDay == null || String(perDay).trim() === '' || isNaN(Number(perDay)) ? 10 : Number(perDay);
   const CHATS = String(chats || '').split(',').map((s) => s.trim()).filter(Boolean);
 
   async function tg(method, body = {}) {
@@ -77,6 +80,10 @@ function createBot({ telegramToken, githubToken, repo, chats }) {
     return true;
   }
 
+  async function isAdmin(u) {
+    for (const c of CHATS) { try { const s = await tg('getChatMember', { chat_id: c, user_id: u.id }); if (['creator', 'administrator'].includes(s.status)) return true; } catch { /* not there */ } }
+    return false;
+  }
   async function onRequest(m, text) {
     const u = m.from;
     if (text.length < MIN_LEN) return reply(m, `Tell me a bit more: <code>/request</code> and the idea, at least ${MIN_LEN} characters. For example <i>/request Let players draw on the map</i>`);
@@ -84,7 +91,7 @@ function createBot({ telegramToken, githubToken, repo, chats }) {
     const tag = `${m.chat.id}:${m.message_id}`;
     if (all.some((i) => (meta(i.body) || {}).msg === tag)) return; // handled already (Telegram sent it twice)
     const today = new Date().toISOString().slice(0, 10);
-    if (all.filter((i) => (meta(i.body) || {}).user === u.id && i.created_at.slice(0, 10) === today).length >= PER_DAY) return reply(m, `That's ${PER_DAY} requests from you today, thanks! Send the next one tomorrow.`);
+    if (PER_DAY > 0 && all.filter((i) => (meta(i.body) || {}).user === u.id && i.created_at.slice(0, 10) === today).length >= PER_DAY && !(await isAdmin(u))) return reply(m, `That's ${PER_DAY} requests from you today, thanks! Send the next one tomorrow.`);
     const dup = similar(text, all.filter((i) => i.state === 'open'));
     if (dup) {
       const added = await vote(dup, u);
@@ -186,7 +193,7 @@ function createBot({ telegramToken, githubToken, repo, chats }) {
 export default {
   async fetch(req, env, ctx) {
     const url = new URL(req.url);
-    const bot = () => createBot({ telegramToken: env.TELEGRAM_TOKEN, githubToken: env.GITHUB_TOKEN, repo: env.GITHUB_REPOSITORY || 'CPSDomain/VTT', chats: env.TELEGRAM_CHAT_ID });
+    const bot = () => createBot({ telegramToken: env.TELEGRAM_TOKEN, githubToken: env.GITHUB_TOKEN, repo: env.GITHUB_REPOSITORY || 'CPSDomain/VTT', chats: env.TELEGRAM_CHAT_ID, perDay: env.REQUESTS_PER_DAY });
     // one-time setup: Telegram sends messages here from now on, and the command list shows in the chat's menu
     if (req.method === 'GET' && url.pathname === '/setup') {
       if (!env.WEBHOOK_SECRET || url.searchParams.get('key') !== env.WEBHOOK_SECRET) return new Response('Add ?key= with your WEBHOOK_SECRET', { status: 403 });
