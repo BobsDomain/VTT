@@ -2,6 +2,25 @@
 
 All notable changes to Tabletop. Newest first. Each version's section is used as the release notes on GitHub.
 
+## [1.19.6] - 2026-11-14
+
+Checked against the 2014 Player's Handbook: all 361 of its spells, its buffs and its debuffs.
+
+### Added
+- **2014 spell names:**
+  - **All 361 spells** from the 2014 Player's Handbook now find their 2024 version, including Branding Smite (now Shining Smite).
+  - **Older D&D Beyond characters** cast them like any other spell.
+- **Spells that now work on their own:**
+  - **Shining Smite:** the target glows, can't be invisible, and attacks against it have Advantage.
+  - **Levitate:** Constitution save, and the target floats (a new Levitating marker).
+  - **Enhance Ability:** pick the ability, and the target has Advantage on checks with it, including breaking free of Web or a grapple.
+  - **Forcecage:** trapped creatures get a Forcecage marker and their players can't move them out.
+  - **Goodberry:** ten berries appear in the caster's items, and each one heals 1 hit point.
+- **Conditions by the 2024 rules:**
+  - **Incapacitated:** an incapacitated creature loses its concentration (stunned, paralyzed, unconscious and petrified count too), and rolls initiative with Disadvantage.
+  - **Grappled:** a grappled creature has Disadvantage attacking anyone but its grappler.
+  - **Invisible:** an invisible creature rolls initiative with Advantage.
+
 ## [1.19.5] - 2026-11-14
 
 ### Changed

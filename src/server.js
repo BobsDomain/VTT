@@ -14,7 +14,7 @@ const FX = require('../public/js/monsterfx.js');
 const SUMS = require('./summons');
 const ddb = require('./ddb');
 
-const VERSION = '1.19.5';
+const VERSION = '1.19.6';
 const PUBLIC = path.join(__dirname, '..', 'public');
 const VISION = require(path.join(PUBLIC, 'js', 'vision.js'));
 const CATALOG = JSON.parse(fs.readFileSync(path.join(PUBLIC, 'catalog.json'), 'utf8'));
@@ -472,7 +472,11 @@ function startServer({ port = 3000, host = '0.0.0.0', dataDir, dmKey, network = 
     });
   }
   // Token changes: DMs always hear. Each player gets it if they can see it now, or loses it if they could before.
+  const INCAP = ['incapacitated', 'paralyzed', 'stunned', 'unconscious', 'petrified'];
   function tokenChanged(sc, tok, before) {
+    // 2024: an Incapacitated creature (paralyzed, stunned, unconscious and petrified count) loses its concentration
+    if (before && (tok.conditions || []).includes('concentrating') && (tok.conditions || []).some((c) => INCAP.includes(c)) && !(before.conditions || []).some((c) => INCAP.includes(c)))
+      setImmediate(() => { if (!(tok.conditions || []).includes('concentrating')) return; const k = concKey(tok), r = endConc(k); const b = { ...tok }; tok.conditions = (tok.conditions || []).filter((c) => c !== 'concentrating'); delete tok.concOn; tokenChanged(sc, tok, b); tellAbout(sc, tok, `🧠 ${tok.label || '?'} is incapacitated: concentration on ${r.spell || 'its spell'} ends${r.freed.length ? ' (' + r.freed.join(', ') + ' freed)' : ''}`); save(); });
     toDMs({ type: 'token', sceneId: sc.id, token: tok });
     for (const c of playersOnScene(sc.id)) {
       const now = tokVisible(sc, tok, c.user), was = before ? tokVisible(sc, before, c.user) : false;
@@ -640,10 +644,12 @@ function startServer({ port = 3000, host = '0.0.0.0', dataDir, dmKey, network = 
     if (how === 'grapple') { const a = skill('Athletics', 0), b = skill('Acrobatics', 1); bonus = Math.max(a, b); what = (a >= b ? 'Strength (Athletics)' : 'Dexterity (Acrobatics)') + ' DC ' + mk.escapeDc; }
     else if (how === 'check') { const ix = ABL.indexOf(mk.checkAbl || 'STR'); bonus = mk.skill ? skill(mk.skill, ix) : mods[ix] || 0; what = `${({ STR: 'Strength', DEX: 'Dexterity' })[mk.checkAbl] || 'Strength'}${mk.skill ? ' (' + mk.skill + ')' : ''} DC ${mk.escapeDc}`; }
     else { bonus = skill('Athletics', 0); what = 'Strength (Athletics) DC ' + mk.dc; }
-    const conds = new Set(t.conditions || []);
+    const conds = new Set(t.conditions || []), used = /^Dexterity/.test(what) ? 'DEX' : /^Strength/.test(what) ? 'STR' : mk.checkAbl || 'STR';
     const dis = conds.has('poisoned') || conds.has('frightened'), extra = conds.has('exhaustion') ? -2 * (t.exhaustion || 1) : 0;
-    const expr = '1d20' + sgnS(bonus + extra) + (dis ? 'dis' : ''), r = rollDice(expr);
-    return { ok: r.total >= (mk.escapeDc || mk.dc), total: r.total, expr, r, what };
+    const adv = spellsOn(t).some((x) => x.checkAdv === used); // Enhance Ability on that ability
+    const mode = adv && !dis ? 'adv' : dis && !adv ? 'dis' : '';
+    const expr = '1d20' + sgnS(bonus + extra) + mode, r = rollDice(expr);
+    return { ok: r.total >= (mk.escapeDc || mk.dc), total: r.total, expr, r, what: what + (adv ? ' (Enhance Ability)' : '') };
   }
 
   // ----- an attack roll, with what the 2024 rules say changes it -----
@@ -673,6 +679,7 @@ function startServer({ port = 3000, host = '0.0.0.0', dataDir, dmKey, network = 
     if (a.has('blessed')) extra += '+1d4'; if (a.has('baned')) extra += '-1d4'; if (a.has('muddled')) extra += '-1d6';
     if (a.has('exhaustion')) extra += '-' + 2 * ((src && src.exhaustion) || 1);
     if (a.has('sapped')) { dis++; notes.push('Sap'); }
+    if (a.has('grappled') && src && (src.marks || []).some((m) => m.c === 'grappled' && m.by) && !(src.marks || []).some((m) => m.c === 'grappled' && tokOfKey(sc, m.by) === t)) { dis++; notes.push('grappled (not attacking its grappler)'); }
     if (a.has('dancing') || (src && (src.marks || []).some((m) => /irresistible dance/i.test(m.spell) && m.c === 'charmed'))) dis++;
     for (const c of ['blinded', 'paralyzed', 'petrified', 'restrained', 'stunned', 'unconscious', 'outlined', 'distracted']) if (d.has(c)) { adv++; notes.push('target ' + c); }
     if (d.has('prone')) { if (melee) adv++; else dis++; }
@@ -858,7 +865,7 @@ function startServer({ port = 3000, host = '0.0.0.0', dataDir, dmKey, network = 
   const spellsOn = (t) => { const seen = new Map(); for (const m of t.marks || []) { const k = m.by + '|' + m.spell; if (!seen.has(k)) seen.set(k, m); } return [...seen.values()]; };
   const sameSpell = (a) => (m) => m.by === a.by && m.spell === a.spell;
   const FIELDS = ['end', 'start', 'hurt', 'escape', 'escapeDc', 'checkAbl', 'skill', 'expire', 'tick', 'count', 'manual', 'note', 'afterEnd', 'temp', 'breakConc',
-    'ac', 'acBase', 'acMin', 'saves', 'resist', 'disAgainst', 'advAgainst', 'atkAgainst', 'disFrom', 'sanctuary', 'deathWard', 'advSaves', 'maxHeal', 'agathys', 'weaponDmg', 'immune', 'advSpell', 'weaponHit', 'dupes', 'blink', 'reduce'];
+    'ac', 'acBase', 'acMin', 'saves', 'resist', 'disAgainst', 'advAgainst', 'atkAgainst', 'disFrom', 'sanctuary', 'deathWard', 'advSaves', 'maxHeal', 'agathys', 'weaponDmg', 'immune', 'advSpell', 'weaponHit', 'dupes', 'blink', 'reduce', 'checkAdv'];
   // put an effect's conditions on a token and remember how they end
   function putOn(sc, t, rule, ctx) {
     const before = { ...t }, immune = immuneTo(t);
@@ -1158,6 +1165,8 @@ function startServer({ port = 3000, host = '0.0.0.0', dataDir, dmKey, network = 
     // conditions and protections: Hold Person, Bless, Shield, Stoneskin, Faerie Fire…
     if (cast.first) startZone(sc, sp, cast, ctx, parts, rule, targets);
     if (cast.first) { summonFrom(sc, sp, cast, ctx); moveFrom(sc, sp, cast, ctx, targets, parts, failIds, hitIds); }
+    // Goodberry: ten berries in the caster's items, each one healing 1 hit point
+    if (cast.first && /^goodberry$/i.test(sp.name) && cast.tplOwner) { const inv = invOf(cast.tplOwner), old = inv.find((x) => x.item.name === 'Goodberry'); if (old) old.qty += 10; else inv.push({ id: uid(), item: { name: 'Goodberry', kind: 'potion', desc: 'Eat one as a Bonus Action: it restores 1 hit point. They disappear 24 hours after the spell.', rarity: '', value: '', attune: false, potion: { heal: '1', temp: '', cures: [], resist: '' }, bonus: { ac: 0, saves: 0, resist: [], attack: 0 } }, qty: 10, used: 0, equipped: false }); sendInv(cast.tplOwner); ctx.lines.push('🫐 Ten goodberries are in ' + cast.tplOwner + "'s items (From the DM → Drink to eat one)"); }
     // a save with no damage or condition, just an outcome (Counterspell: the other caster's spell fails)
     if (rule && rule.saveOnly && rule.save) for (const t of targets) { const r = saveRoll(sc, t, rule.save, { dc, spell: true }); if (r.r) showRoll(t, { label: `${sp.name}: ${rule.save} save`, expr: r.expr, ...r.r }); lines.push(r.ok ? `🛡 ${who(t)} saves against ${sp.name}` : `✖ ${who(t)} fails the save: ${rule.saveOnly}`); }
     if (rule && targets.length && !(rule.reaction && cast.first) && ((rule.add || []).length || rule.divine || rule.hpCap)) {
@@ -1856,8 +1865,8 @@ function startServer({ port = 3000, host = '0.0.0.0', dataDir, dmKey, network = 
       // ----- tokens -----
       case 'move':
         if (!tok || (!u.isDM && (tok.hidden || (tok.owner !== u.name && tok.owner !== '*')))) return;
-        if (!u.isDM && (tok.conditions || []).some((c) => ['grappled', 'restrained', 'paralyzed', 'petrified', 'stunned', 'unconscious'].includes(c)) && (int(msg.x, tok.x) !== tok.x || int(msg.y, tok.y) !== tok.y)) {
-          const why = (tok.conditions || []).find((c) => ['grappled', 'restrained', 'paralyzed', 'petrified', 'stunned', 'unconscious'].includes(c));
+        if (!u.isDM && (tok.conditions || []).some((c) => ['grappled', 'restrained', 'paralyzed', 'petrified', 'stunned', 'unconscious', 'caged'].includes(c)) && (int(msg.x, tok.x) !== tok.x || int(msg.y, tok.y) !== tok.y)) {
+          const why = (tok.conditions || []).find((c) => ['grappled', 'restrained', 'paralyzed', 'petrified', 'stunned', 'unconscious', 'caged'].includes(c));
           send(ws, { type: 'error', message: `${tok.label || 'Your token'} is ${why}: its speed is 0${why === 'grappled' ? ' (try to escape first)' : ''}` }); send(ws, { type: 'token', sceneId: sc.id, token: tok }); return;
         }
         { const before = { ...tok };
@@ -1948,13 +1957,15 @@ function startServer({ port = 3000, host = '0.0.0.0', dataDir, dmKey, network = 
         if (msg.onlyUnrolled) list = list.filter((e) => e.init == null);
         list = list.filter((e) => !(e.after && c.entries.some((x) => x.id === e.after))); // they go with their caster
         for (const e of list.slice(0, 100)) {
-          const t = sc.tokens[e.id], b = t.initBonus || 0, surprised = (t.conditions || []).includes('surprised');
-          const r = rollDice('1d20' + (b ? (b > 0 ? '+' : '') + b : '') + (surprised ? 'dis' : '')); // 2024: surprised rolls initiative with Disadvantage
+          const t = sc.tokens[e.id], b = t.initBonus || 0, cs = t.conditions || [], surprised = cs.includes('surprised');
+          // 2024: surprised or incapacitated rolls with Disadvantage, invisible with Advantage
+          const lo = surprised || cs.some((c) => INCAP.includes(c)), hi = cs.includes('invisible'), mo = lo && !hi ? 'dis' : hi && !lo ? 'adv' : '';
+          const r = rollDice('1d20' + (b ? (b > 0 ? '+' : '') + b : '') + mo);
           if (surprised) { const b0 = { ...t }; t.conditions = t.conditions.filter((x) => x !== 'surprised'); tokenChanged(sc, t, b0); }
           e.init = r.total;
           // monsters' rolls stay between the DM and the dice
           const who = u.isDM && !t.owner ? 'DM' : u.name;
-          const entry = { who, label: t.label === who ? 'Initiative' : `${t.label} · Initiative`, expr: '1d20' + (b ? (b > 0 ? '+' : '') + b : '') + (surprised ? 'dis' : ''), ...r, private: u.isDM && !t.owner, time: Date.now(), skin: skinOf(u.name) };
+          const entry = { who, label: t.label === who ? 'Initiative' : `${t.label} · Initiative`, expr: '1d20' + (b ? (b > 0 ? '+' : '') + b : '') + mo, ...r, private: u.isDM && !t.owner, time: Date.now(), skin: skinOf(u.name) };
           if (u.isDM) delete entry.dice; // a whole room of monsters rolling at once stays in the log
           state.log.push(entry);
           clients().forEach((cl) => canSee(cl.user, entry) && send(cl, { type: 'roll', entry }));

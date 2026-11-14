@@ -140,7 +140,7 @@ const CONDITIONS = [
   ['dodging', 'Dodging', 'dodging', '#0891b2'], ['disengaged', 'Disengaged', 'run', '#4d7c0f'], ['distracted', 'Helped against (next attack has Advantage)', 'hand', '#ca8a04'],
   ['sapped', 'Sapped (Disadvantage on its next attack)', 'broken-shield', '#78350f'], ['vexed', 'Vexed (Advantage on the next attack against it)', 'targeted', '#be123c'], ['hobbled', 'Slowed by a weapon (-10 ft)', 'snail', '#0e7490'],
   ['cover-half', 'Half cover (+2 AC and Dex saves)', 'stone-wall', '#57534e'], ['cover-3q', 'Three-quarters cover (+5 AC and Dex saves)', 'stone-tower', '#44403c'],
-  ['mirrored', 'Mirror Image', 'mirror-mirror', '#7c3aed'], ['surprised', 'Surprised (Disadvantage on initiative)', 'surprised', '#f59e0b'], ['blinking', 'Blink (in the Ethereal Plane)', 'teleport', '#6d28d9'], ['hidden', 'Hidden', 'hood', '#1f2937'], ['dead', 'Dead', 'skull-crossed-bones', '#111827']
+  ['mirrored', 'Mirror Image', 'mirror-mirror', '#7c3aed'], ['levitating', 'Levitating', 'feather', '#38bdf8'], ['enhanced', 'Enhance Ability (Advantage on checks)', 'upgrade', '#16a34a'], ['caged', 'Forcecage (can\'t leave)', 'cage', '#64748b'], ['surprised', 'Surprised (Disadvantage on initiative)', 'surprised', '#f59e0b'], ['blinking', 'Blink (in the Ethereal Plane)', 'teleport', '#6d28d9'], ['hidden', 'Hidden', 'hood', '#1f2937'], ['dead', 'Dead', 'skull-crossed-bones', '#111827']
 ];
 
 const icons = {}, library = [], missing = [];

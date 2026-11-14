@@ -257,6 +257,11 @@ Click **⚔ Encounter builder…** under Add tokens.
 - **Optional rules:** **Under water** and **Flanking** are tick boxes under the initiative list. **Surprised** in the token panel gives Disadvantage on initiative.
 - **Falls:** set the feet and click **🪂 Fall**.
 - **Dying:** a dying character can be stabilised with **🩺 Stabilise**.
+- **Conditions follow the 2024 rules:**
+  - **Incapacitated:** an incapacitated creature (stunned, paralyzed, unconscious and petrified count) loses its concentration, and rolls initiative with Disadvantage.
+  - **Grappled:** a grappled creature has Disadvantage attacking anyone but its grappler.
+  - **Invisible:** an invisible creature rolls initiative with Advantage.
+- **Characters with 2014 spells:** a D&D Beyond character with 2014 spells (Branding Smite, Feeblemind, the old Sleep…) gets the 2024 version of each one.
 
 **Reactions (1.19):** each creature has one Reaction a round, back at the start of its turn.
 - **Opportunity attacks:** when a creature leaves a monster's reach, a card asks you which attack to make (or **Let them go**). Players get the same card for their character's weapons.

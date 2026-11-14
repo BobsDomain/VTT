@@ -93,6 +93,7 @@ const RULES = {
   'bless': R(['blessed'], null, { ally: true }),
   'bane': R(['baned'], 'CHA'),
   'faerie fire': R(['outlined'], 'DEX'),
+  'shining smite': R(['outlined'], null), // 2024 (2014's Branding Smite): it glows, can't be Invisible, attacks against it have Advantage
   'shield of faith': R(['shielded'], null, { ally: true }), // +2 AC (worked out from the condition)
   'haste': R(['hasted'], null, { ally: true, afterEnd: { add: ['incapacitated'], expire: 'tgtEnd' } }),
   'heroism': R(['heroism'], null, { ally: true, removes: ['frightened'], tempTick: true }),
@@ -103,6 +104,10 @@ const RULES = {
   'hex': R(['hexed'], null),
   'bestow curse': R(['cursed'], 'WIS'),
   'banishment': R(['banished', 'incapacitated'], 'CHA'),
+  // 1.19.6, from checking the 2014 Player's Handbook: Levitate, Enhance Ability, Forcecage
+  'levitate': R(['levitating'], 'CON'),
+  'enhance ability': R(['enhanced'], null, { ally: true, options: [['Strength', 'STR'], ['Dexterity', 'DEX'], ['Intelligence', 'INT'], ['Wisdom', 'WIS'], ['Charisma', 'CHA']].map(([name, a]) => ({ name, add: ['enhanced'], checkAdv: a })) }),
+  'forcecage': R(['caged'], null),
   'banishing smite': R(['banished', 'incapacitated'], 'CHA'),
   'geas': R(['charmed'], 'WIS'),
   'faerie fire ': R(['outlined'], 'DEX'),
