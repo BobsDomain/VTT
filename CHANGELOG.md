@@ -2,6 +2,14 @@
 
 All notable changes to Tabletop. Newest first. Each version's section is used as the release notes on GitHub.
 
+## [1.19.5] - 2026-11-14
+
+### Changed
+- **The Telegram bot answers straight away:**
+  - **Cloudflare Worker:** it now runs on a free Cloudflare Worker that Telegram sends each message to, so replies take a second or two instead of up to 10 minutes. Setup steps are in `docs/TELEGRAM-BOT.md`.
+  - **GitHub backup:** the GitHub version stays as a backup and stands down by itself once the Worker is answering.
+  - **The requests list:** `docs/REQUESTS.md` is now rebuilt as soon as a request changes.
+
 ## [1.19.4] - 2026-11-14
 
 ### Added

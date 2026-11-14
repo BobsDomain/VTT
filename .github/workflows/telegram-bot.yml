@@ -1,11 +1,15 @@
-# The Telegram bot (scripts/telegram-bot.js): every 10 minutes it reads the group's new messages, turns /request into
-# GitHub issues, answers /new and /download, and keeps docs/REQUESTS.md up to date. Set up: docs/TELEGRAM-BOT.md.
+# The Telegram bot's GitHub side (bot/github.mjs):
+#  • docs/REQUESTS.md is rebuilt whenever a request issue changes (and on the schedule)
+#  • backup: while no Cloudflare Worker is set up, it reads the group every 10 minutes and answers
+# Set up: docs/TELEGRAM-BOT.md.
 name: Telegram bot
 
 on:
   schedule:
     - cron: '*/10 * * * *'
-  workflow_dispatch: # run it now from the Actions tab (also how you find the group's chat id)
+  issues:
+    types: [opened, edited, closed, reopened, labeled, unlabeled, deleted]
+  workflow_dispatch: # run it now from the Actions tab
 
 permissions:
   contents: write
@@ -19,6 +23,8 @@ jobs:
   bot:
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    # issue changes only matter for requests
+    if: github.event_name != 'issues' || contains(github.event.issue.labels.*.name, 'feature-request')
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
@@ -31,7 +37,7 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
         run: |
           if [ -z "$TELEGRAM_TOKEN" ]; then echo "No TELEGRAM_TOKEN secret yet: see docs/TELEGRAM-BOT.md"; exit 0; fi
-          node scripts/telegram-bot.js
+          node bot/github.mjs ${{ github.event_name == 'issues' && '--list' || '' }}
       - name: Save the requests list
         run: |
           if [ -n "$(git status --porcelain docs/REQUESTS.md)" ]; then

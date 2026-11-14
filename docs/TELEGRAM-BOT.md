@@ -1,6 +1,8 @@
 # The Telegram bot
 
-The Tabletop bot lives in your Telegram group. It turns feature requests into GitHub issues and a list in [REQUESTS.md](REQUESTS.md), and it answers "what's new?" and "where do I download it?". It runs on GitHub every 10 minutes (`.github/workflows/telegram-bot.yml`), so nothing has to stay running on your PC; replies come within about 10 minutes.
+The Tabletop bot lives in your Telegram group. It turns feature requests into GitHub issues and a list in [REQUESTS.md](REQUESTS.md), and it answers "what's new?" and "where do I download it?".
+
+It runs on **Cloudflare Workers** (free), so it answers within a second or two and nothing has to run on your PC. Until the Worker is set up, a slower backup on GitHub answers every 10 minutes or so; it stands down by itself once the Worker is working.
 
 ## What people in the group can do
 
@@ -14,29 +16,67 @@ The Tabletop bot lives in your Telegram group. It turns feature requests into Gi
 | `/download` or "where do I download it?" | The Player and DM installers and the player guide (PDF) |
 | `/help` | The list of commands |
 
-Spam control: only your group counts (and private messages from its members), each person can send 3 requests a day, and requests need at least 10 characters.
+**Spam control:**
+- **Who:** only your group counts, plus private messages from its members.
+- **How many:** each person can send 3 requests a day.
+- **How short:** requests need at least 10 characters.
 
-## Setting it up (about 10 minutes, once)
+Plain questions ("what's new?") get an answer when they end in a question mark, mention the bot, or reply to it.
 
-1. **Make the bot.** In Telegram, message **@BotFather**: `/newbot`, give it a name (Tabletop) and a username (for example `TabletopVTT_bot`). Copy the token it gives you.
-2. **Let it read questions.** Still with @BotFather: `/setprivacy`, pick your bot, choose **Disable**. Without this it only sees commands like `/new`, not "what's new?".
-3. **Show its commands.** @BotFather: `/setcommands`, pick your bot, and paste:
-   ```
-   request - Ask for a feature
-   requests - What's been asked
-   upvote - Vote for a request (its number)
-   status - Where a request stands (its number)
-   new - What's in the latest version
-   download - Where to get the apps
-   help - What I can do
-   ```
-4. **Add it to the group.** Add the bot to your Telegram group. For a channel, add it to the channel's discussion group: members can't post in the channel itself.
-5. **Give GitHub the token.** On GitHub, open the VTT repository → **Settings → Secrets and variables → Actions → New repository secret**. Name: `TELEGRAM_TOKEN`, value: the token from step 1.
-6. **Find the group's id.** Send any message in the group. Then on GitHub open **Actions → Telegram bot → Run workflow**. When it finishes, open the run and the **Read the group and answer** step: it shows `Message in chat -100… (your group)`. Copy that number, minus sign included.
-7. **Tell the bot which group.** **Settings → Secrets and variables → Actions → Variables → New repository variable**. Name: `TELEGRAM_CHAT_ID`, value: the number from step 6.
-8. **Try it.** In the group, send `/help`, then run the workflow once more (or wait up to 10 minutes).
+## Part 1: the bot and the GitHub backup (done already)
 
-If the run says it can't push, open **Settings → Actions → General → Workflow permissions** and choose **Read and write permissions**.
+1. **Make the bot.** With **@BotFather**: `/newbot`, then `/setprivacy` → your bot → **Disable** (so it sees "what's new?", not only commands).
+2. **Add it to your group.** It has to be a group: members can't post in a channel. A channel's discussion group works.
+3. **On GitHub,** under **Settings → Secrets and variables → Actions**:
+   - **Secret** `TELEGRAM_TOKEN`: the bot's token.
+   - **Variable** `TELEGRAM_CHAT_ID`: the group's id (`-944196680`).
+
+   To find a group's id, send a message there and open `https://api.telegram.org/bot<token>/getUpdates` in your browser; look for `"chat":{"id":…`.
+
+## Part 2: instant answers with Cloudflare (about 15 minutes)
+
+### A GitHub token for the bot
+
+The Worker creates the request issues on GitHub, so it needs its own key.
+
+1. On GitHub, click your picture → **Settings → Developer settings → Personal access tokens → Fine-grained tokens → Generate new token**.
+2. **Token name:** `Tabletop bot`.
+3. **Expiration:** the longest it offers. Put a reminder in your calendar to make a new one before then.
+4. **Resource owner:** **CPSDomain**.
+5. **Repository access:** **Only select repositories → VTT**.
+6. **Permissions → Repository permissions:** **Issues: Read and write**, **Contents: Read-only**.
+7. Click **Generate token** and copy it (it starts with `github_pat_`).
+
+If CPSDomain is an organisation, it may have to allow the token first: in the organisation's **Settings → Personal access tokens**, approve the pending request.
+
+### The Worker
+
+1. Make a free account at [dash.cloudflare.com](https://dash.cloudflare.com).
+2. **Workers & Pages → Create → Create Worker** (Hello World). Name it `tabletop-bot` and click **Deploy**.
+3. Click **Edit code**. Delete everything in the editor, paste the whole of [`bot/worker.js`](../bot/worker.js) from the repository, and click **Deploy**.
+4. Back on the Worker's page: **Settings → Variables and Secrets → Add**, five times:
+
+   | Type | Name | Value |
+   | --- | --- | --- |
+   | Secret | `TELEGRAM_TOKEN` | the bot's token from @BotFather |
+   | Secret | `GITHUB_TOKEN` | the `github_pat_…` token from above |
+   | Secret | `WEBHOOK_SECRET` | any 30 or so random letters and numbers (no spaces); only Telegram and the Worker know it |
+   | Text | `TELEGRAM_CHAT_ID` | `-944196680` |
+   | Text | `GITHUB_REPOSITORY` | `CPSDomain/VTT` |
+
+   Click **Deploy** (or **Save and deploy**) when they're all in.
+5. Copy the Worker's address from its page. It looks like `https://tabletop-bot.yourname.workers.dev`.
+6. **Switch Telegram over.** In your browser, open that address with `/setup?key=` and your `WEBHOOK_SECRET` added. For example:
+   `https://tabletop-bot.yourname.workers.dev/setup?key=YourLongRandomWord`
+
+   It should show four ✔ lines. A ✖ line says what's wrong: usually a token pasted wrong, or a missing setting.
+7. Send `/help` in the group: the answer comes straight away.
+
+From now on, the GitHub backup sees that the Worker is answering and leaves the group alone. It still rebuilds `docs/REQUESTS.md` whenever a request changes.
+
+### When the bot changes
+
+When a new Tabletop version changes the bot, the release notes say so. Open the Worker → **Edit code**, paste the new `bot/worker.js` and **Deploy**. Your settings stay.
 
 ## Looking after the requests
 
@@ -47,10 +87,11 @@ Every request is a GitHub issue with the **feature-request** label.
 - **Not doing it:** close it as **not planned**. It drops off the list.
 - **To build it:** move it into the [roadmap](ROADMAP.md) as part of a release.
 
-The bot rewrites `docs/REQUESTS.md` and commits it itself, so in GitHub Desktop click **Fetch origin / Pull origin** before you commit, as GitHub Desktop will remind you.
+The list `docs/REQUESTS.md` is committed by GitHub itself, so in GitHub Desktop click **Fetch origin / Pull origin** before you commit, as GitHub Desktop will remind you.
 
-## Good to know
+## If something's wrong
 
-- **The 10 minutes are approximate.** GitHub runs scheduled jobs when it can, and at busy times that can be later.
-- **Inactive repos:** GitHub pauses scheduled jobs in a repository with no activity for 60 days. If the bot goes quiet, open **Actions → Telegram bot** and click **Enable workflow**.
-- **Telegram keeps messages for 24 hours.** If the bot is paused longer than that, anything older is lost.
+- **No answer at all:** open the Worker's `/setup?key=…` address again. Its last line shows Telegram's view, including any error.
+- **Going back to the GitHub backup only:** open `https://api.telegram.org/bot<token>/deleteWebhook` in your browser.
+- **The group's id changed:** linking the group to a channel, or growing past 200 members, gives it a new `-100…` id. Update `TELEGRAM_CHAT_ID` in both places, on the Worker and on GitHub.
+- **Free limits:** Cloudflare's free plan allows 100,000 messages a day, far more than a group sends. GitHub pauses the backup's schedule after 60 days without activity in the repository; **Actions → Telegram bot → Enable workflow** turns it back on.
