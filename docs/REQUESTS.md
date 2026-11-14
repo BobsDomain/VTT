@@ -9,3 +9,4 @@ Feature requests sent to the Tabletop Telegram bot (`/request`). The bot keeps t
 | [#3](https://github.com/CPSDomain/VTT/issues/3) | Option to hide hp bar of npcs | 1 | 💡 Requested |
 | [#4](https://github.com/CPSDomain/VTT/issues/4) | Option to undock windows from sidebar to free-floating windows or re-dockable elsewhere | 1 | 💡 Requested |
 | [#5](https://github.com/CPSDomain/VTT/issues/5) | If a player or monster enters combat that is already going on. they should be allowed to r | 1 | 💡 Requested |
+| [#6](https://github.com/CPSDomain/VTT/issues/6) | Conjure animals is not working as intended. No option to choose based on characters CR. ex | 1 | 💡 Requested |
