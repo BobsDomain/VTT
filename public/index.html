@@ -738,7 +738,7 @@
         <div class="row dm-only"><button id="initAddSel" title="Add the selected token">+ Selected</button><button id="initAddAll" title="Add every token players can see, plus all monsters">+ All on map</button></div>
         <div class="row dm-only"><button id="initRollMon" title="Roll 1d20 + initiative bonus for every monster without a score">🎲 Roll for monsters</button><button id="initEnd" class="danger">End combat</button></div>
         <div class="row dm-only"><label class="monhp" title="What players see of monsters' and NPCs' health. A token's own &quot;Players see&quot; setting wins.">Players see monster HP <select class="monHp"><option value="bar">a health bar</option><option value="none">nothing</option><option value="numbers">the numbers</option></select></label></div>
-        <div class="row dm-only cbopts"><label class="check" title="2024 rules: most melee weapons and ranged attacks have Disadvantage, ranged attacks miss past normal range, everything resists fire"><input type="checkbox" id="optWater"> Under water</label><label class="check" title="Optional rule (Dungeon Master's Guide): melee attacks have Advantage when an ally is on the opposite side of the target"><input type="checkbox" id="optFlank"> Flanking</label><button id="monRest" title="Daily uses, abilities that come back after a rest, Legendary Resistances">🌅 New day</button></div>
+        <div class="row dm-only cbopts"><label class="check" title="Underwater: most melee weapons and ranged attacks have Disadvantage, ranged attacks miss past normal range, everything resists fire"><input type="checkbox" id="optWater"> Under water</label><label class="check" title="Optional rule (Dungeon Master's Guide): melee attacks have Advantage when an ally is on the opposite side of the target"><input type="checkbox" id="optFlank"> Flanking</label><button id="monRest" title="Daily uses, abilities that come back after a rest, Legendary Resistances">🌅 New day</button></div>
       </section>
       <section id="startSec" class="dm-only">
         <div class="row" style="margin:0"><button id="combatStart" title="Start initiative with every token on this map">⚔ Start combat</button></div>
@@ -824,7 +824,7 @@
         <div class="row acts" id="eActs"><button data-act="dodge" title="Attacks against it have Disadvantage; Advantage on Dex saves, until its next turn">🛡 Dodge</button><button data-act="disengage" title="No opportunity attacks against it this turn">🏃 Disengage</button><button data-act="help" title="Pick a foe: an ally's next attack on it has Advantage">🤝 Help</button><button data-act="hide" title="Stealth check, DC 15">🫥 Hide</button><button data-act="dash">💨 Dash</button><button data-act="ready">⏳ Ready</button></div>
         <div class="row acts" id="eSummon" hidden></div>
         <div class="row" id="eDying" hidden><button id="eStab" title="Wisdom (Medicine) check, DC 10">🩺 Stabilise</button></div>
-        <div class="row dm-only"><label>Fall <input id="eFallFt" type="number" min="10" step="10" value="20" style="width:60px"> ft</label><button id="eFall" title="1d6 bludgeoning per 10 feet (20d6 at most), prone if hurt">🪂 Fall</button><label class="check" title="2024: Disadvantage on its initiative roll"><input type="checkbox" id="eSurp"> Surprised</label></div>
+        <div class="row dm-only"><label>Fall <input id="eFallFt" type="number" min="10" step="10" value="20" style="width:60px"> ft</label><button id="eFall" title="1d6 bludgeoning per 10 feet (20d6 at most), prone if hurt">🪂 Fall</button><label class="check" title="2014: it can't move or take an action on its first turn, and has no reaction until that turn ends"><input type="checkbox" id="eSurp"> Surprised</label></div>
         <div class="row dm-only"><button id="eToInit">⚔ Add to initiative</button><button id="eDup">Duplicate</button><button id="delToken" class="danger">Delete</button></div>
       </section>
 
@@ -894,7 +894,7 @@
       <button class="close" data-close>✕</button></div>
     <div class="encbody">
       <div class="enccol">
-        <div class="row" style="margin:0"><input id="encSearch" placeholder="Search monsters: goblin, dragon, undead…"><select id="encType" class="fixed"><option value="">Any kind</option></select><select id="encEd" class="fixed" title="Which rules the stat blocks follow"><option value="2024">2024 monsters</option><option value="2014">2014 monsters</option><option value="">Both</option></select></div>
+        <div class="row" style="margin:0"><input id="encSearch" placeholder="Search monsters: goblin, dragon, undead…"><select id="encType" class="fixed"><option value="">Any kind</option></select></div>
         <div class="row"><span class="fixed hint" style="margin:0">CR</span><select id="encCrMin"></select><span class="fixed hint" style="margin:0">to</span><select id="encCrMax"></select><span class="fixed hint" id="encCount" style="margin:0"></span></div>
         <div id="encList"></div>
       </div>
@@ -906,7 +906,7 @@
         <div class="row"><input id="encName" placeholder="Name, e.g. Goblin ambush" maxlength="60"><button id="encSave" class="fixed">Save</button><button id="encDel" class="fixed danger" title="Delete this saved encounter">✕</button></div>
         <div class="row"><select id="encHp"><option value="avg">Average HP</option><option value="roll">Rolled HP</option></select><label class="check" style="margin:0"><input type="checkbox" id="encHidden" checked> Add hidden</label></div>
         <div class="row"><button id="encPlace" class="primary">Place on the map</button></div>
-        <div class="hint">Difficulty from the XP budget per character (D&amp;D 2024 rules). Low: no one should die; Moderate: a slim chance; High: could be deadly. Monsters from the SRD 5.1 (CC BY 4.0).</div>
+        <div class="hint">Difficulty from the 2014 Dungeon Master's Guide: each character's XP threshold, with more monsters counting for more. Easy: barely a scratch; Medium: some hit points lost; Hard: someone could go down; Deadly: someone could die. Monsters from the SRD 5.1 (CC BY 4.0).</div>
       </div>
     </div>
   </div>

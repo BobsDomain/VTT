@@ -1092,16 +1092,20 @@ $('vExplore').onchange = () => setVision({ explore: $('vExplore').checked });
 $('vPreview').onchange = () => { previewKey = ''; draw(); };
 
 // ---------- encounter builder and stat blocks ----------
-// SRD 5.1 monsters (public/monsters.json); difficulty from the D&D 2024 XP budget per character.
-const XP_BUDGET = [null, [50, 75, 100], [100, 150, 200], [150, 225, 400], [250, 375, 500], [500, 750, 1100], [600, 1000, 1400], [750, 1300, 1700], [1000, 1700, 2100], [1300, 2000, 2600], [1600, 2300, 3100],
-  [1900, 2900, 4100], [2200, 3700, 4700], [2600, 4200, 5400], [2900, 4900, 6200], [3300, 5400, 7800], [3800, 6100, 9800], [4500, 7200, 11700], [5000, 8700, 14200], [5500, 10700, 17200], [6400, 13200, 22000]];
+// SRD 5.1 monsters (public/monsters.json; the 2024 ones stay in the file for older maps but aren't offered since 1.21);
+// difficulty from the 2014 Dungeon Master's Guide: XP thresholds per character, and the multiplier for a group.
+const XP_THRESH = [null, [25, 50, 75, 100], [50, 100, 150, 200], [75, 150, 225, 400], [125, 250, 375, 500], [250, 500, 750, 1100], [300, 600, 900, 1400], [350, 750, 1100, 1700], [450, 900, 1400, 2100], [550, 1100, 1600, 2400], [600, 1200, 1900, 2800],
+  [800, 1600, 2400, 3600], [1000, 2000, 3000, 4500], [1100, 2200, 3400, 5100], [1250, 2500, 3800, 5700], [1400, 2800, 4300, 6400], [1600, 3200, 4800, 7200], [2000, 3900, 5900, 8800], [2100, 4200, 6300, 9500], [2400, 4900, 7300, 10900], [2800, 5700, 8500, 12700]];
+// the 2014 encounter multiplier: more monsters count for more (one step up for a party under 3, one down for 6 or more)
+const XP_MULT = (n, party) => { const steps = [0.5, 1, 1.5, 2, 2.5, 3, 4, 5]; let i = n <= 0 ? 1 : n === 1 ? 1 : n === 2 ? 2 : n <= 6 ? 3 : n <= 10 ? 4 : n <= 14 ? 5 : 6; if (party < 3) i++; else if (party >= 6) i--; return steps[Math.max(0, Math.min(7, i))]; };
 const CRS = [0, 0.125, 0.25, 0.5, ...Array.from({ length: 30 }, (_, i) => i + 1)];
 const crText = (c) => (c === 0.125 ? '1/8' : c === 0.25 ? '1/4' : c === 0.5 ? '1/2' : String(c));
 let monsters = null, monsterById = new Map(), encounters = [], enc = { id: null, picked: [] };
 async function loadMonsters() {
   if (monsters) return monsters;
   const r = await fetch('monsters.json'); const j = await r.json();
-  monsters = j.monsters; monsterById = new Map(monsters.map((m) => [m.id, m]));
+  monsterById = new Map(j.monsters.map((m) => [m.id, m])); // every one, so tokens from older maps still find theirs
+  monsters = j.monsters.filter((m) => m.ed !== 2024); // 2014 rules
   return monsters;
 }
 // a token's monster: its own link, or the SRD monster with the same name (Goblin 3 → Goblin)
@@ -1109,7 +1113,7 @@ function monsterOf(t) {
   if (!monsters || !t) return null;
   if (t.srd && monsterById.get(t.srd)) return monsterById.get(t.srd);
   const base = String(t.label || '').replace(/\s+\d+$/, '').toLowerCase();
-  return monsters.find((m) => m.ed === 2024 && m.name.toLowerCase() === base) || monsters.find((m) => m.name.toLowerCase() === base) || null; // the 2024 one first
+  return monsters.find((m) => m.name.toLowerCase() === base) || null;
 }
 async function openEncounters() {
   await loadMonsters();
@@ -1122,13 +1126,12 @@ async function openEncounters() {
   const owners = new Set(Object.values(sc().tokens).map((t) => t.owner).filter((o) => o && o !== '*'));
   if (owners.size) $('encSize').value = owners.size;
   $('encLevel').value = tryGet('tt-partyLevel') || $('encLevel').value;
-  if (tryGet('tt-monsterEd') != null) $('encEd').value = tryGet('tt-monsterEd');
   renderEncList(); renderEncPicked(); renderEncLoad();
   $('encModal').hidden = false; setTimeout(() => $('encSearch').focus(), 0);
 }
 function renderEncList() {
-  const q = $('encSearch').value.trim().toLowerCase(), type = $('encType').value, ed = +$('encEd').value || 0, lo = Number($('encCrMin').value), hi = Number($('encCrMax').value);
-  const list = monsters.filter((m) => (!q || m.name.toLowerCase().includes(q) || m.type.toLowerCase().includes(q)) && (!type || m.type.startsWith(type) || (type === 'beast' && /^swarm/.test(m.type))) && (!ed || m.ed === ed) && m.cr >= lo && m.cr <= hi);
+  const q = $('encSearch').value.trim().toLowerCase(), type = $('encType').value, lo = Number($('encCrMin').value), hi = Number($('encCrMax').value);
+  const list = monsters.filter((m) => (!q || m.name.toLowerCase().includes(q) || m.type.toLowerCase().includes(q)) && (!type || m.type.startsWith(type) || (type === 'beast' && /^swarm/.test(m.type))) && m.cr >= lo && m.cr <= hi);
   if (q) { const rank = (m) => (m.name.toLowerCase().startsWith(q) ? 0 : m.name.toLowerCase().includes(q) ? 1 : 2); list.sort((x, y) => rank(x) - rank(y)); } // name matches first
   $('encCount').textContent = `${list.length} monsters`;
   const box = $('encList'); box.innerHTML = '';
@@ -1136,7 +1139,7 @@ function renderEncList() {
   for (const m of list.slice(0, 400)) {
     const row = document.createElement('div'); row.className = 'mrow';
     const n = document.createElement('span'); n.className = 'mn'; n.textContent = m.name; n.title = 'Show the stat block';
-    const sm = document.createElement('small'); sm.textContent = m.type.split(' (')[0] + (!ed ? ` · ${m.ed}` : ''); n.appendChild(sm); n.onclick = () => showStatBlock(m);
+    const sm = document.createElement('small'); sm.textContent = m.type.split(' (')[0]; n.appendChild(sm); n.onclick = () => showStatBlock(m);
     const cr = document.createElement('span'); cr.className = 'cr'; cr.textContent = `CR ${crText(m.cr)}`;
     const xp = document.createElement('span'); xp.className = 'cr'; xp.textContent = `${m.xp.toLocaleString()} XP`;
     const add = document.createElement('button'); add.textContent = '+'; add.title = 'Add to the encounter'; add.onclick = () => { pick(m.id, 1); };
@@ -1168,13 +1171,13 @@ function renderEncPicked() {
   }
   // the difficulty meter
   const size = Math.max(1, Math.min(12, Number($('encSize').value) || 4)), lvl = Math.max(1, Math.min(20, Number($('encLevel').value) || 1));
-  const [low, mod, high] = XP_BUDGET[lvl].map((v) => v * size), xp = encXp(), max = high * 1.5;
+  const [easy, medium, hard, deadly] = XP_THRESH[lvl].map((v) => v * size), count = enc.picked.reduce((a, p) => a + p.n, 0), raw = encXp(), mult = XP_MULT(count, size), xp = Math.round(raw * mult), max = deadly * 1.5;
   $('encMeter').querySelector('.fill').style.width = Math.min(100, (xp / max) * 100) + '%';
-  $('encMeter').querySelector('.marks').innerHTML = [low, mod, high].map((v) => `<span style="left:${(v / max) * 100}%">▲</span>`).join('')
-    + `<div class="legend">Low up to ${low.toLocaleString()} · Moderate up to ${mod.toLocaleString()} · High up to ${high.toLocaleString()} XP</div>`;
-  const verdict = !xp ? '' : xp <= low ? `Low · ${xp.toLocaleString()} XP: an easy fight` : xp <= mod ? `Moderate · ${xp.toLocaleString()} XP: a real fight, a slim chance someone dies`
-    : xp <= high ? `High · ${xp.toLocaleString()} XP: could be deadly` : `Beyond High · ${xp.toLocaleString()} XP: very likely deadly for ${size} level-${lvl} characters`;
-  $('encVerdict').textContent = verdict; $('encVerdict').style.color = !xp ? '' : xp <= low ? '#4ade80' : xp <= mod ? '#facc15' : xp <= high ? '#fb923c' : '#f87171';
+  $('encMeter').querySelector('.marks').innerHTML = [easy, medium, hard, deadly].map((v) => `<span style="left:${(v / max) * 100}%">▲</span>`).join('')
+    + `<div class="legend">Easy ${easy.toLocaleString()} · Medium ${medium.toLocaleString()} · Hard ${hard.toLocaleString()} · Deadly ${deadly.toLocaleString()} XP</div>`;
+  const sum = `${xp.toLocaleString()} XP${mult !== 1 ? ` (${raw.toLocaleString()} × ${mult} for ${count} monster${count === 1 ? '' : 's'})` : ''}`;
+  const verdict = !xp ? '' : xp < easy ? `Trivial · ${sum}` : xp < medium ? `Easy · ${sum}` : xp < hard ? `Medium · ${sum}: a few hit points lost` : xp < deadly ? `Hard · ${sum}: someone could go down` : `Deadly · ${sum}: someone could die`;
+  $('encVerdict').textContent = verdict; $('encVerdict').style.color = !xp ? '' : xp < medium ? '#4ade80' : xp < hard ? '#facc15' : xp < deadly ? '#fb923c' : '#f87171';
   $('encDel').style.display = enc.id ? '' : 'none';
 }
 function renderEncLoad() {
@@ -1273,7 +1276,6 @@ const rollWithPrivacy = (expr, label) => sendMsg({ type: 'roll', expr, label: la
 
 $('openEnc').onclick = () => openEncounters().catch((e) => toast('Couldn\'t load the monsters: ' + e.message));
 $('encSearch').oninput = () => renderEncList();
-$('encEd').onchange = () => { trySet('tt-monsterEd', $('encEd').value); renderEncList(); };
 $('encType').onchange = $('encCrMin').onchange = $('encCrMax').onchange = () => renderEncList();
 $('encSize').oninput = () => renderEncPicked();
 $('encLevel').oninput = () => { trySet('tt-partyLevel', $('encLevel').value); renderEncPicked(); };
@@ -2004,7 +2006,7 @@ $('eSurp').onchange = () => { const t = sc() && sc().tokens[selected]; if (!t) r
 $('optWater').onchange = () => sendMsg({ type: 'sceneFlags', sceneId: editing, underwater: $('optWater').checked });
 $('optFlank').onchange = () => sendMsg({ type: 'sceneFlags', sceneId: editing, flanking: $('optFlank').checked });
 $('monRest').onclick = () => sendMsg({ type: 'monsterRest', sceneId: editing });
-// what holds this token and how each thing ends (2024 rules), with a button to roll the save or break free now;
+// what holds this token and how each thing ends (2014 rules), with a button to roll the save or break free now;
 // a monster's Legendary Resistance; a character's death saves; and for the DM, putting an effect with a save on it
 const ABLN = { STR: 'Strength', DEX: 'Dexterity', CON: 'Constitution', INT: 'Intelligence', WIS: 'Wisdom', CHA: 'Charisma' };
 function howItEnds(m) {
@@ -2046,15 +2048,16 @@ function renderMarks(t) {
     if (mine && !d.stable) row.append(btn('🎲 Death save', () => sendMsg({ type: 'deathSave', sceneId: editing, id: t.id })));
     box.append(row);
   }
-  if ((t.conditions || []).includes('exhaustion')) { // 2024: each level takes 2 off every d20 test, saves included
-    const row = document.createElement('div'); row.className = 'mk'; const tx = document.createElement('span'); tx.textContent = '😩 Exhaustion level (−2 per level to d20 tests)';
+  if ((t.conditions || []).includes('exhaustion')) { // 2014: six levels, each adding to the ones before
+    const EXH = ['', 'checks at Disadvantage', 'speed halved', 'attacks and saves at Disadvantage', 'hit point maximum halved', 'speed 0', 'dead'];
+    const row = document.createElement('div'); row.className = 'mk'; const tx = document.createElement('span'); tx.textContent = '😩 Exhaustion level'; tx.title = EXH.slice(1).map((x, i) => `${i + 1}: ${x}`).join('\n');
     const sel = document.createElement('select'); for (let i = 1; i <= 6; i++) { const o = document.createElement('option'); o.value = i; o.textContent = i; sel.append(o); } sel.value = t.exhaustion || 1; sel.disabled = !mine;
-    sel.onchange = () => updateSelected({ exhaustion: +sel.value }); row.append(tx, sel); box.append(row);
+    sel.onchange = () => updateSelected({ exhaustion: +sel.value }); const now = document.createElement('span'); now.className = 'hint'; now.textContent = EXH.slice(1, (t.exhaustion || 1) + 1).join(', '); row.append(tx, sel, now); box.append(row);
   }
   box.hidden = !box.children.length;
   $('eFx').hidden = !me.isDM;
 }
-// the 2024 spell table, for the DM's casting (names, levels, descriptions)
+// the spell table (2014 rules), for the DM's casting (names, levels, descriptions)
 let spellDb = null;
 async function loadSpells() { if (!spellDb) { const j = await (await fetch('spells.json')).json(); spellDb = { list: j.spells, by: new Map(j.spells.map((x) => [x.name.toLowerCase(), x])), alias: j.alias || {} }; const dl = $('spellNames'); if (dl) dl.innerHTML = j.spells.map((x) => `<option value="${x.name.replace(/"/g, '&quot;')}">`).join(''); } return spellDb; }
 const findSpell = (n) => { if (!spellDb) return null; const k = String(n || '').toLowerCase().trim(); return spellDb.by.get(k) || spellDb.by.get((spellDb.alias[k] || '').toLowerCase()) || null; };

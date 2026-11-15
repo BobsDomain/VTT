@@ -1,4 +1,4 @@
-// Saving throws that come from somewhere other than a spell, by the 2024 rules:
+// Saving throws (and contests) that come from somewhere other than a spell, by the 2014 rules (since 1.21):
 //  - class features and feats a player uses on a creature (Stunning Strike, Cunning Strike, Turn Undead…), and the
 //    Grapple and Shove everyone can do with an Unarmed Strike;
 //  - presets from the Dungeon Master's Guide for the DM: magic items, poisons and hazards that hold a creature until it
@@ -8,30 +8,24 @@
 
 const F = (name, x) => ({ name, ...x });
 const FEATURES = [
-  F('Grapple', { all: true, add: ['grappled'], save: 'STR|DEX', dc: 'k:STR', escape: 'grapple', note: 'Unarmed Strike: Strength or Dexterity save (the target picks the better). Escape: its action, Athletics or Acrobatics.' }),
-  F('Shove prone', { all: true, add: ['prone'], save: 'STR|DEX', dc: 'k:STR', note: 'Unarmed Strike: knocked Prone on a failed save.' }),
-  F('Stunning Strike', { cls: 'Monk', lvl: 5, add: ['stunned'], save: 'CON', dc: 'k:WIS', expire: 'srcStart', cost: 'Focus Points', note: 'Stunned until the start of your next turn.' }),
-  F('Topple (Open Hand)', { cls: 'Monk', sub: 'Open Hand', lvl: 3, add: ['prone'], save: 'DEX', dc: 'k:WIS' }),
-  F('Cunning Strike: Poison', { cls: 'Rogue', lvl: 5, add: ['poisoned'], save: 'CON', dc: 'k:DEX', end: true, rounds: 10 }),
-  F('Cunning Strike: Trip', { cls: 'Rogue', lvl: 5, add: ['prone'], save: 'DEX', dc: 'k:DEX' }),
-  F('Devious Strike: Daze', { cls: 'Rogue', lvl: 14, add: ['dazed'], save: 'CON', dc: 'k:DEX', expire: 'tgtEnd' }),
-  F('Devious Strike: Knock Out', { cls: 'Rogue', lvl: 14, add: ['unconscious'], save: 'CON', dc: 'k:DEX', end: true, hurt: 'end', rounds: 10 }),
-  F('Devious Strike: Obscure', { cls: 'Rogue', lvl: 14, add: ['blinded'], save: 'DEX', dc: 'k:DEX', expire: 'tgtEnd' }),
+  // 2014: your Strength (Athletics) check against the target's Athletics or Acrobatics, in place of one attack
+  F('Grapple', { all: true, add: ['grappled'], contest: true, dc: 'k:STR', escape: 'grapple', note: 'Your Athletics against its Athletics or Acrobatics. Escape: its action, the same contest.' }),
+  F('Shove prone', { all: true, add: ['prone'], contest: true, dc: 'k:STR', note: 'Your Athletics against its Athletics or Acrobatics: it falls Prone if you win.' }),
+  F('Shove away', { all: true, add: [], contest: true, push: 1, dc: 'k:STR', note: 'Your Athletics against its Athletics or Acrobatics: it is pushed 5 feet away if you win.' }),
+  F('Stunning Strike', { cls: 'Monk', lvl: 5, add: ['stunned'], save: 'CON', dc: 'k:WIS', expire: 'srcEnd', cost: 'Ki Points', note: 'Stunned until the end of your next turn.' }),
+  F('Open Hand Technique: Prone', { cls: 'Monk', sub: 'Open Hand', lvl: 3, add: ['prone'], save: 'DEX', dc: 'k:WIS' }),
   F('Rend Mind', { cls: 'Rogue', sub: 'Soulknife', lvl: 17, add: ['stunned'], save: 'WIS', dc: 'k:DEX', end: true, rounds: 10 }),
-  F('Intimidating Presence', { cls: 'Barbarian', sub: 'Berserker', lvl: 10, add: ['frightened'], save: 'WIS', dc: 'k:STR', end: true, rounds: 10 }),
-  F('Turn Undead', { cls: 'Cleric', lvl: 2, add: ['frightened', 'incapacitated'], save: 'WIS', dc: 'spell', hurt: 'end', rounds: 10, cost: 'Channel Divinity' }),
-  F('Abjure Foes', { cls: 'Paladin', lvl: 9, add: ['frightened'], save: 'WIS', dc: 'spell', hurt: 'end', rounds: 10, cost: 'Channel Divinity' }),
-  F("Nature's Wrath", { cls: 'Paladin', sub: 'Ancients', lvl: 3, add: ['restrained'], save: 'STR', dc: 'spell', end: true, rounds: 10, cost: 'Channel Divinity' }),
+  F('Intimidating Presence', { cls: 'Barbarian', sub: 'Berserker', lvl: 10, add: ['frightened'], save: 'WIS', dc: 'k:CHA', expire: 'srcEnd', note: 'Frightened until the end of your next turn; your action keeps it going.' }),
+  F('Turn Undead', { cls: 'Cleric', lvl: 2, add: ['frightened', 'incapacitated'], save: 'WIS', dc: 'spell', hurt: 'end', rounds: 10, cost: 'Channel Divinity', note: 'Turned: it moves away from you and can only Dash or try to escape.' }),
+  F("Nature's Wrath", { cls: 'Paladin', sub: 'Ancients', lvl: 3, add: ['restrained'], save: 'STR|DEX', dc: 'spell', end: true, rounds: 10, cost: 'Channel Divinity' }),
   F('Frightful Aura (Avenging Angel)', { cls: 'Paladin', sub: 'Vengeance', lvl: 20, add: ['frightened'], save: 'WIS', dc: 'spell', hurt: 'end', rounds: 10 }),
-  F('Beguiling Magic', { cls: 'Bard', sub: 'Glamour', lvl: 3, add: ['charmed'], save: 'WIS', dc: 'spell', end: true, rounds: 10, options: [{ name: 'Charmed', add: ['charmed'] }, { name: 'Frightened', add: ['frightened'] }] }),
   F('Beguiling Twist', { cls: 'Ranger', sub: 'Fey Wanderer', lvl: 11, add: ['charmed'], save: 'WIS', dc: 'spell', end: true, rounds: 10, options: [{ name: 'Charmed', add: ['charmed'] }, { name: 'Frightened', add: ['frightened'] }] }),
-  F("Stalker's Flurry: Mass Fear", { cls: 'Ranger', sub: 'Gloom Stalker', lvl: 15, add: ['frightened'], save: 'WIS', dc: 'spell', expire: 'srcStart' }),
-  F('Hurl Through Hell', { cls: 'Warlock', sub: 'Fiend', lvl: 14, add: ['banished', 'incapacitated'], save: 'CHA', dc: 'spell', expire: 'srcEnd', dice: '8d10', type: 'psychic' }),
+  F('Hurl Through Hell', { cls: 'Warlock', sub: 'Fiend', lvl: 14, add: ['banished', 'incapacitated'], save: null, dc: 'spell', expire: 'srcEnd', dice: '10d10', type: 'psychic', note: 'No save: banished until the end of your next turn, then 10d10 psychic if it isn\'t a fiend.' }),
   F('Menacing Attack', { cls: 'Fighter', sub: 'Battle Master', lvl: 3, add: ['frightened'], save: 'WIS', dc: 'k:STR|DEX', expire: 'srcEnd', cost: 'Superiority Dice' }),
   F('Trip Attack', { cls: 'Fighter', sub: 'Battle Master', lvl: 3, add: ['prone'], save: 'STR', dc: 'k:STR|DEX', cost: 'Superiority Dice' }),
   F('Telekinetic Thrust', { cls: 'Fighter', sub: 'Psi Warrior', lvl: 7, add: ['prone'], save: 'STR', dc: 'k:INT' }),
-  F('Shield Bash (Shield Master)', { feat: 'Shield Master', add: ['prone'], save: 'STR', dc: 'k:STR' }),
-  F('Poisoned weapon (Poisoner)', { feat: 'Poisoner', add: ['poisoned'], save: 'CON', dc: 'k:INT|WIS', expire: 'srcEnd', dice: '2d8', type: 'poison' })
+  F('Shield shove (Shield Master)', { feat: 'Shield Master', add: ['prone'], contest: true, dc: 'k:STR', note: 'A Bonus Action shove after you Attack: your Athletics against its Athletics or Acrobatics.' }),
+  F('Poisoned weapon (Poisoner)', { feat: 'Poisoner', add: ['poisoned'], save: 'CON', dc: 14, expire: 'srcEnd', dice: '2d8', type: 'poison' })
 ];
 
 // for the DM: Dungeon Master's Guide items, poisons and hazards whose effect lasts until the creature saves
@@ -70,7 +64,7 @@ function dcFor(ch, dc) {
   return 8 + (ch.prof || 2) + Math.max(...abls.map((a) => ((ch.abilities || [])[ix[a]] || {}).mod || 0));
 }
 
-// Weapon Mastery properties (2024 Player's Handbook)
+// Weapon Mastery properties (2024 Player's Handbook; not used with the 2014 rules)
 const MASTERY = { club: 'Slow', dagger: 'Nick', greatclub: 'Push', handaxe: 'Vex', javelin: 'Slow', 'light hammer': 'Nick', mace: 'Sap', quarterstaff: 'Topple', sickle: 'Nick', spear: 'Sap',
   dart: 'Vex', 'light crossbow': 'Slow', shortbow: 'Vex', sling: 'Slow', battleaxe: 'Topple', flail: 'Sap', glaive: 'Graze', greataxe: 'Cleave', greatsword: 'Graze', halberd: 'Cleave', lance: 'Topple',
   longsword: 'Sap', maul: 'Topple', morningstar: 'Sap', pike: 'Push', rapier: 'Vex', scimitar: 'Nick', shortsword: 'Vex', trident: 'Topple', warhammer: 'Push', 'war pick': 'Sap', whip: 'Slow',

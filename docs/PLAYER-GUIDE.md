@@ -44,7 +44,8 @@ You get your portrait, hit points, AC, speed, initiative and darkvision, and a b
 - **When a spell holds you** (Hold Person, Web…), your token shows which spell and how it ends. End-of-turn saves roll for you when the DM moves the turn on; for Web or Entangle, click **🪢 Try to break free** on your token when you use your action for it.
 - **Attack with a weapon:** **🎯** next to it under Attacks, then click the target. Advantage, AC, critical hits, Bless, Hex and Hunter's Mark are worked out for you.
 - **Spells that pick a damage type** (Chromatic Orb, Dragon's Breath) ask for it in the bar. Protections like Shield, Mage Armor, Stoneskin or Death Ward change your AC and damage as they should.
-- **Features that make a creature save** (Stunning Strike, Cunning Strike, Turn Undead, Grapple, Shove…) are listed with their DC: click **🎯**, click the target, then **Apply**.
+- **Features that make a creature save** (Stunning Strike, Turn Undead…) are listed with their DC: click **🎯**, click the target, then **Apply**. **Grapple**, **Shove prone** and **Shove away** work the same way, but roll your Athletics against the target's Athletics or Acrobatics.
+- **Divine Smite** (paladins) is listed with your spells: after a melee hit, cast it on the target and pick the slot.
 - **Your saving throws roll for you**, with Bless, Bane, Exhaustion, your Advantages from D&D Beyond, a paladin's aura nearby, and conditions that change them. At 0 hit points your death saves roll at the start of your turn.
 - **Class features** such as Lay on Hands, Second Wind, Channel Divinity or Bardic Inspiration sit under **Class features**: click a pip to use one. **💛 Heal…** for Lay on Hands lets you pick who and how many hit points from your pool.
 - **Coins and inventory** show your money, what you carry (and in which bag) and your spells by level.
@@ -113,11 +114,13 @@ When the DM shows you a handout (a letter, a picture, a clue), it pops up on you
 
 - **Attack a target:** click **🎯** next to a weapon in My character, then the target. Tabletop rolls against its AC and takes the damage off. Cast spells with **Cast** and click the targets.
 - **Actions:** select your token for **🛡 Dodge**, **🏃 Disengage**, **🤝 Help**, **🫥 Hide**, **💨 Dash** and **⏳ Ready**.
-- **Rests:** spend Hit Dice from My character after a **☾ Short rest**.
-- **Reactions:** when a foe leaves your reach, a card asks if you want to make an opportunity attack; when someone nearby casts a spell and you have Counterspell, a card asks if you want to counter it. Click a button or let it time out.
+- **Rests:** spend Hit Dice from My character after a **☾ Short rest**. A **⛺ Long rest** gives back half your Hit Dice.
+- **Reactions:** when a foe leaves your reach, a card asks if you want to make an opportunity attack; when someone nearby casts a spell and you have Counterspell, a card asks if you want to counter it and with which slot. A slot of the spell's level or higher stops it; a lower one rolls your ability check for you. Click a button or let it time out.
+- **Surprised:** if the DM marks you surprised, you can't move or act on your first turn, and you have no reaction until that turn ends.
+- **Rules:** Tabletop follows the 2014 rules: the 2014 Player's Handbook spells, Exhaustion in six levels, and no Weapon Mastery.
 - **Party:** the **Party** panel shows everyone's hit points, most hurt first, so healers know who to help. Click a name to find them on the map.
 - **Joining late:** if you join a fight that's already going, a card asks you to roll initiative.
-- **Summons:** creatures you summon appear next to you. Drag them, and attack with them from **Your summons** in My character. In a fight, most summons go right after you; a familiar or undead rolls its own initiative when you click **🎲 Init**. Misty Step and Dimension Door ask you to click where you appear.
+- **Summons:** creatures you summon appear next to you. Drag them, and attack with them from **Your summons** in My character. In a fight, Tasha's summons go right after you; a familiar, undead or conjured creature rolls its own initiative when you click **🎲 Init**. Conjure Animals and the other Conjure spells ask which creature you want. Misty Step and Dimension Door ask you to click where you appear.
 
 ## Items from the DM
 

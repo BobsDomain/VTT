@@ -38,6 +38,7 @@ Status: ✅ done · 🔨 in progress · 📋 planned · 💬 to discuss
 | 1.18 | The rest of combat: spell areas that trigger on movement, Smite, Mirror Image, Blink, True Strike and Resistance, target limits, Dodge/Disengage/Help/Hide/Dash/Ready, opportunity attack alerts, cover, range and reach, Weapon Mastery, dying, falls and Hit Dice, Multiattack, recharge and legendary actions, DM-made items, portrait tokens |
 | 1.19 | The 2024 monsters (SRD 5.2) with Bonus Actions and their spells, one-click opportunity attacks and Counterspell, grapples that drag, summon spells on the map with their attacks, teleports by clicking a square, pushes |
 | 1.20 | Requests from the group: cones from the caster, a party HP panel, hiding monster HP for the table, late joiners rolling initiative, 2014 Conjure Animals, floating side panels |
+| 1.21 | The 2014 rules everywhere, as the group asked: 2014 spells, Sleep and Color Spray by hit points, 2014 Counterspell, surprise, Exhaustion, grapple and shove contests, the 2014 Conjure spells and monsters, Easy-to-Deadly encounters |
 
 ## Next
 
@@ -51,7 +52,7 @@ Left over from the 1.7 plan:
 - **Your own asset packs (optional):** point Tabletop at a folder of PNG tiles and props you own (Forgotten Adventures, Tom Cartos and the like) and use them in the build palettes. They stay on your PC; Tabletop can't ship them.
 
 ### Next 💬
-Whatever the table needs most after playing with 1.20, and the group's requests.
+Whatever the table needs most after playing with 1.21, and the group's requests.
 
 ### Parked — AI map generation
 - Claude designing a map from a free-text description (needs internet and an Anthropic API key). Parked in favour of the bigger built-in generator; can come back later.

@@ -2,6 +2,32 @@
 
 All notable changes to Tabletop. Newest first. Each version's section is used as the release notes on GitHub.
 
+## [1.21.0] - 2026-11-15
+
+Tabletop now plays by the 2014 rules, as the group asked: the 2014 Player's Handbook (with Xanathar's and Tasha's), the 2014 monsters and the 2014 Dungeon Master's Guide. The 2024 versions are gone.
+
+### Changed
+- **2014 rules everywhere:**
+  - **Spells:** every spell uses its 2014 numbers and effects, with the SRD 5.1 text where there is one: Cure Wounds 1d8, Inflict Wounds as a melee attack, Branding Smite, Feeblemind, Barkskin AC 16, Blade Ward, Resistance (+1d4 on one save), True Strike, Power Word Kill (nothing over 100 hit points) and the rest. Characters made with the 2024 book get the 2014 version of each spell.
+  - **Sleep and Color Spray:** a pool of hit points, from the weakest creature up, with no save.
+  - **Counterspell:** the counterspeller picks a slot; a spell of that level or lower fails, a higher one needs an ability check against DC 10 + its level. A countered spell still uses its slot.
+  - **Spell areas:** Spirit Guardians, Moonbeam, Cloud of Daggers, Cloudkill, Blade Barrier, Wall of Thorns and Black Tentacles hit on entering or starting a turn there.
+  - **Conditions and timing:** Irresistible Dance has no first save, Staggering Smite and Stinking Cloud work the 2014 way, Ray of Sickness hits then asks for a save, Wrathful Smite ends with a Wisdom check, and Mirror Image uses a d20.
+  - **Surprise:** a surprised creature rolls initiative normally, then loses its first turn and has no reaction until that turn ends.
+  - **Exhaustion:** six levels: checks at Disadvantage, then speed, then attacks and saves at Disadvantage, and so on. The token panel lists what each level does.
+  - **Grapple and Shove:** Athletics against the target's Athletics or Acrobatics, with **Shove away** added. A grappled creature is just held in place.
+  - **Initiative:** no more Advantage for invisible creatures or Disadvantage for incapacitated ones.
+  - **Long rests:** give back half your Hit Dice.
+  - **Class features:** 2024-only ones are gone; Stunning Strike lasts until the end of your next turn; Divine Smite is a paladin feature listed with the spells.
+  - **Weapon Mastery:** removed (it's a 2024 rule).
+- **Conjure spells call creatures from the stat blocks:**
+  - **By Challenge Rating:** Conjure Animals, Conjure Woodland Beings and Conjure Minor Elementals ask how many and how strong, then which creature.
+  - **One strong creature:** Conjure Elemental, Conjure Fey and Conjure Celestial call one creature up to their Challenge Rating.
+  - **Objects and insects:** Animate Objects asks for the objects' size; Giant Insect makes giant centipedes, spiders, wasps or a scorpion.
+  - **Familiars and steeds:** Find Familiar has the 2014 forms, and Find Steed brings a warhorse, pony, camel, elk or mastiff.
+- **The 2014 monsters:** the encounter builder and the dungeon generator use the 334 SRD 5.1 monsters. Maps with 2024 monsters on them still show their stat blocks.
+- **Encounter difficulty from the 2014 Dungeon Master's Guide:** Easy, Medium, Hard and Deadly, with the multiplier for groups of monsters.
+
 ## [1.20.2] - 2026-11-15
 
 The last of the group's first requests.

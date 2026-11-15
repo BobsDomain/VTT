@@ -1,21 +1,24 @@
 // Spells that put a creature or a thing on the map (1.19), and spells that move creatures (teleports and pushes).
-// Numbers only, from the 2024 Player's Handbook stat blocks (Bestial Spirit, Fey Spirit…): AC, hit points and attacks
-// worked out for the spell's level. L = the slot level, mod = the caster's spellcasting ability modifier.
+// Numbers only, by the 2014 rules (since 1.21): the Player's Handbook spells call creatures from the stat blocks (SRD
+// 5.1), Tasha's Cauldron's spirits have their own (Bestial Spirit, Fey Spirit…): AC, hit points and attacks worked out
+// for the spell's level. L = the slot level, mod = the caster's spellcasting ability modifier.
 //   forms: the choices when casting (Air, Land, Water…), each with its own attacks or hit points
 //   attacks: { name, dice(L, mod), type, melee, reach | range, extra } — made with the caster's spell attack bonus
 //   multi(L): how many attacks it makes with its action
-//   srd: a monster from the stat blocks instead (Find Familiar's owl, Animate Dead's skeletons)
+//   srd: a monster from the stat blocks instead (Find Familiar's owl, Animate Dead's skeletons); count(L): how many
+//   cr / crMax(L) and kind: the caster picks a creature of that type and Challenge Rating (Conjure Animals, Conjure
+//   Elemental…); count of them, times scale(L) for a higher slot
 //   object: no hit points (Spiritual Weapon); zone: an area that moves with it (Conjure Animals' pack)
-//   init: 'share' (2024: shares the caster's Initiative, its turn right after the caster's) or 'roll' (its own roll:
-//   Find Familiar, the undead); things without it (Spiritual Weapon, Bigby's Hand) act on the caster's turn
+//   init: 'share' (Tasha's spirits: the caster's Initiative, its turn right after the caster's) or 'roll' (its own roll:
+//   Find Familiar, the undead, conjured creatures); things without it (Spiritual Weapon, Bigby's Hand) act on the
+//   caster's turn
 const F = (n) => Math.floor(n);
 const half = (L) => F(L / 2);
 const SPIRIT = { icon: 'ghost', color: '#7dd3fc' };
 
 const SUMMONS = {
-  'find familiar': { init: 'roll', label: 'Familiar', n: () => 1, forms: ['Bat', 'Cat', 'Frog', 'Hawk', 'Lizard', 'Octopus', 'Owl', 'Rat', 'Raven', 'Spider', 'Weasel'].map((x) => ({ name: x, srd: x.toLowerCase() + '-2024' })) },
-  'find steed': { init: 'share', label: 'Otherworldly Steed', size: 2, icon: 'horse-head', color: '#a78bfa', ac: (L) => 10 + L, hp: (L) => 5 + 10 * L,
-    forms: [['Celestial', 'radiant'], ['Fey', 'psychic'], ['Fiend', 'necrotic']].map(([name, type]) => ({ name, attacks: [{ name: 'Otherworldly Slam', dice: (L) => '1d8+' + L, type, melee: true }] })) },
+  'find familiar': { init: 'roll', label: 'Familiar', n: () => 1, forms: ['Bat', 'Cat', 'Crab', 'Frog', 'Hawk', 'Lizard', 'Octopus', 'Owl', 'Poisonous Snake', 'Quipper', 'Rat', 'Raven', 'Sea Horse', 'Spider', 'Weasel'].map((x) => ({ name: x, srd: x.toLowerCase().replace(/ /g, '-') })) },
+  'find steed': { init: 'roll', label: 'Steed', n: () => 1, forms: ['Warhorse', 'Pony', 'Camel', 'Elk', 'Mastiff'].map((x) => ({ name: x, srd: x.toLowerCase() })) },
   'summon beast': { init: 'share', label: 'Bestial Spirit', ...SPIRIT, icon: 'wolf-head', ac: (L) => 11 + L, multi: half,
     forms: [{ name: 'Air', hp: (L) => 20 + 5 * (L - 2) }, { name: 'Land', hp: (L) => 30 + 5 * (L - 2) }, { name: 'Water', hp: (L) => 30 + 5 * (L - 2) }].map((f) => ({ ...f, attacks: [{ name: 'Rend', dice: (L) => '1d8+' + (4 + L), type: 'piercing', melee: true }] })) },
   'summon fey': { init: 'share', label: 'Fey Spirit', ...SPIRIT, icon: 'fairy', ac: (L) => 12 + L, hp: (L) => 30 + 10 * (L - 3), multi: half,
@@ -41,33 +44,37 @@ const SUMMONS = {
       { name: 'Yugoloth', hp: (L) => 60 + 15 * (L - 6), attacks: [{ name: 'Claws', dice: (L) => '1d8+' + (3 + L), type: 'slashing', melee: true }] }] },
   'summon dragon': { init: 'share', label: 'Draconic Spirit', ...SPIRIT, icon: 'dragon-head', size: 2, ac: (L) => 14 + L, hp: (L) => 50 + 10 * (L - 5), multi: half,
     forms: ['Chromatic', 'Gem', 'Metallic'].map((name) => ({ name, attacks: [{ name: 'Rend', dice: (L) => '1d6+' + (4 + L), type: 'piercing', melee: true, reach: 10 }] })) },
-  'giant insect': { init: 'share', label: 'Giant Insect', ...SPIRIT, icon: 'long-legged-spider', size: 2, ac: (L) => 11 + L, hp: (L) => 30 + 10 * (L - 4), multi: half,
-    forms: [{ name: 'Centipede' }, { name: 'Spider', extra: [{ name: 'Web Bolt', dice: (L) => '1d10+' + (3 + L), type: 'bludgeoning', range: 60 }] }, { name: 'Wasp' }]
-      .map((f) => ({ name: f.name, attacks: [{ name: 'Poison Jab', dice: (L) => '1d6+' + (3 + L), type: 'piercing', melee: true, reach: 10, extra: { dice: '1d4', type: 'poison' } }, ...(f.extra || [])] })) },
-  'animate dead': { init: 'roll', label: 'Undead', n: (L) => 1 + 2 * (L - 3), forms: [{ name: 'Skeleton', srd: 'skeleton-2024' }, { name: 'Zombie', srd: 'zombie-2024' }], keep: true },
-  'create undead': { init: 'roll', label: 'Undead', n: (L) => Math.max(3, L - 3), forms: [{ name: 'Ghoul', srd: 'ghoul-2024' }], keep: true },
-  'animate objects': { init: 'share', label: 'Animated Object', icon: 'magic-shield', color: '#a8a29e', n: (L, mod) => Math.max(1, mod), ac: () => 15, hp: () => 10,
-    forms: [{ name: 'Medium or smaller', attacks: [{ name: 'Slam', dice: (L, mod) => `${Math.max(1, L - 4)}d4+${3 + mod}`, type: 'force', melee: true }] }] },
+  // 2014: ordinary insects grown into giant ones
+  'giant insect': { init: 'roll', label: 'Giant Insect', forms: [{ name: 'Ten giant centipedes', srd: 'giant-centipede', count: () => 10 }, { name: 'Three giant spiders', srd: 'giant-spider', count: () => 3 }, { name: 'Five giant wasps', srd: 'giant-wasp', count: () => 5 }, { name: 'One giant scorpion', srd: 'giant-scorpion', count: () => 1 }] },
+  // one skeleton or zombie, two more for each slot level above 3rd
+  'animate dead': { init: 'roll', label: 'Undead', n: (L) => 1 + 2 * (L - 3), forms: [{ name: 'Skeleton', srd: 'skeleton' }, { name: 'Zombie', srd: 'zombie' }], keep: true },
+  'create undead': { init: 'roll', label: 'Undead', n: (L) => Math.max(3, L - 3), forms: [{ name: 'Ghouls', srd: 'ghoul' }, { name: 'Ghasts (level 8+)', srd: 'ghast', count: (L) => (L >= 9 ? 3 : 2) }, { name: 'Wights (level 8+)', srd: 'wight', count: (L) => (L >= 9 ? 3 : 2) }, { name: 'Mummies (level 9)', srd: 'mummy', count: () => 2 }], keep: true },
+  // 2014: ten objects, or fewer bigger ones; each attacks with its own bonus (the caster's spell attack here)
+  'animate objects': { init: 'share', label: 'Animated Object', icon: 'magic-shield', color: '#a8a29e',
+    forms: [['Tiny', 10, 18, 20, '1d4+4', 1], ['Small', 10, 16, 25, '1d8+2', 1], ['Medium', 5, 13, 40, '2d6+1', 1], ['Large', 2, 10, 50, '2d10+2', 2], ['Huge', 1, 10, 80, '2d12+4', 3]]
+      .map(([name, n, ac, hp, dice, size]) => ({ name, size, count: (L) => n + (n === 10 ? 2 * (L - 5) : 0), ac: () => ac, hp: () => hp, attacks: [{ name: 'Slam', dice: () => dice, type: 'bludgeoning', melee: true }] })) },
   'spiritual weapon': { label: 'Spiritual Weapon', icon: 'star-swirl', color: '#facc15', object: true,
-    forms: [{ name: 'Weapon', attacks: [{ name: 'Spiritual Weapon', dice: (L, mod) => `${L - 1}d8+${mod}`, type: 'force', melee: true }] }] },
+    forms: [{ name: 'Weapon', attacks: [{ name: 'Spiritual Weapon', dice: (L, mod) => `${1 + half(L - 2)}d8+${mod}`, type: 'force', melee: true }] }] },
   "mordenkainen's sword": { label: 'Arcane Sword', icon: 'star-swirl', color: '#93c5fd', object: true,
-    forms: [{ name: 'Sword', attacks: [{ name: 'Arcane Sword', dice: (L, mod) => `4d12+${mod}`, type: 'force', melee: true }] }] },
+    forms: [{ name: 'Sword', attacks: [{ name: 'Arcane Sword', dice: () => '3d10', type: 'force', melee: true }] }] },
   "bigby's hand": { label: "Bigby's Hand", icon: 'hand', color: '#93c5fd', size: 2, ac: () => 20, hp: (L, mod, maxHp) => maxHp || 40,
-    forms: [{ name: 'Clenched Fist', attacks: [{ name: 'Clenched Fist', dice: (L) => `${5 + 2 * (L - 5)}d8`, type: 'force', melee: true }] }] },
-  'conjure fey': { label: 'Fey Spirit', ...SPIRIT, icon: 'fairy', object: true,
-    forms: [{ name: 'Fey', attacks: [{ name: 'Psychic strike', dice: (L, mod) => `${3 + 2 * (L - 6)}d12+${mod}`, type: 'psychic', melee: true }] }] },
-  // the 2024 conjurings that are areas: a token to move, and the area goes with it
-  // 1.20: the 2014 version too (beasts by Challenge Rating, the caster picks which), twice as many at level 5, three times at 7, four at 9
-  'conjure animals': { label: 'Spirit Pack', icon: 'wolf-head', color: '#7dd3fc', size: 2, object: true, forms: [{ name: 'Spirit pack (2024)' },
-    { name: '2014: one beast of CR 2', cr: 2, count: 1 }, { name: '2014: two beasts of CR 1', cr: 1, count: 2 }, { name: '2014: four beasts of CR 1/2', cr: 0.5, count: 4 }, { name: '2014: eight beasts of CR 1/4', cr: 0.25, count: 8 }], zone: { radius: 10, save: 'DEX', dmg: (L) => ({ dice: `${3 + (L - 3)}d10`, type: 'slashing' }) } },
-  'conjure elemental': { label: 'Elemental Spirit', icon: 'whirlwind', color: '#7dd3fc', size: 2, object: true,
-    forms: [['Air', 'lightning'], ['Earth', 'thunder'], ['Fire', 'fire'], ['Water', 'cold']].map(([name, type]) => ({ name, type })), zone: { radius: 5, save: 'DEX', dmg: (L, f) => ({ dice: `${8 + (L - 5)}d8`, type: f.type }), start: true, add: ['restrained'] } },
+    forms: [{ name: 'Clenched Fist', attacks: [{ name: 'Clenched Fist', dice: (L) => `${4 + 2 * (L - 5)}d8`, type: 'force', melee: true }] }] },
+  // 2014 conjurings: the caster picks a creature of that type and Challenge Rating from the stat blocks
+  'conjure animals': { init: 'roll', label: 'Beasts', kind: 'beast', scale: (L) => (L >= 9 ? 4 : L >= 7 ? 3 : L >= 5 ? 2 : 1),
+    forms: [{ name: 'One beast of CR 2', cr: 2, count: 1 }, { name: 'Two beasts of CR 1', cr: 1, count: 2 }, { name: 'Four beasts of CR 1/2', cr: 0.5, count: 4 }, { name: 'Eight beasts of CR 1/4', cr: 0.25, count: 8 }] },
+  'conjure woodland beings': { init: 'roll', label: 'Fey', kind: 'fey', scale: (L) => (L >= 8 ? 3 : L >= 6 ? 2 : 1),
+    forms: [{ name: 'One fey of CR 2', cr: 2, count: 1 }, { name: 'Two fey of CR 1', cr: 1, count: 2 }, { name: 'Four fey of CR 1/2', cr: 0.5, count: 4 }, { name: 'Eight fey of CR 1/4', cr: 0.25, count: 8 }] },
+  'conjure minor elementals': { init: 'roll', label: 'Elementals', kind: 'elemental', scale: (L) => (L >= 8 ? 3 : L >= 6 ? 2 : 1),
+    forms: [{ name: 'One elemental of CR 2', cr: 2, count: 1 }, { name: 'Two elementals of CR 1', cr: 1, count: 2 }, { name: 'Four elementals of CR 1/2', cr: 0.5, count: 4 }, { name: 'Eight elementals of CR 1/4', cr: 0.25, count: 8 }] },
+  'conjure elemental': { init: 'roll', label: 'Elemental', kind: 'elemental', forms: [{ name: 'An elemental (CR 5, +1 a level above 5th)', crMax: (L) => L, count: 1 }] },
+  'conjure fey': { init: 'roll', label: 'Fey', kind: 'fey|beast', forms: [{ name: 'A fey or beast (CR 6, +1 a level above 6th)', crMax: (L) => L, count: 1 }] },
+  'conjure celestial': { init: 'roll', label: 'Celestial', kind: 'celestial', forms: [{ name: 'A celestial (CR 4; CR 5 at 9th level)', crMax: (L) => (L >= 9 ? 5 : 4), count: 1 }] },
   'dancing lights': { label: 'Dancing Light', icon: 'sparkles', color: '#fde68a', object: true, n: () => 4, light: [0, 10], forms: [{ name: 'Lights' }] },
   'unseen servant': { init: 'roll', label: 'Unseen Servant', icon: 'ghost', color: '#d6d3d1', ac: () => 10, hp: () => 1, forms: [{ name: 'Servant' }], keep: true },
-  "mordenkainen's faithful hound": { label: 'Faithful Hound', icon: 'wolf-head', color: '#93c5fd', object: true, forms: [{ name: 'Hound', attacks: [{ name: 'Bite', dice: () => '4d8', type: 'force', melee: true }] }], keep: true },
+  "mordenkainen's faithful hound": { label: 'Faithful Hound', icon: 'wolf-head', color: '#93c5fd', object: true, forms: [{ name: 'Hound', attacks: [{ name: 'Bite', dice: () => '4d8', type: 'piercing', melee: true }] }], keep: true },
   'phantom steed': { label: 'Phantom Steed', icon: 'horse-head', color: '#d6d3d1', size: 2, ac: () => 10, hp: () => 1, forms: [{ name: 'Steed' }], keep: true }
 };
-SUMMONS['find greater steed'] = { ...SUMMONS['find steed'] };
+
 
 // moving by magic: teleport (feet, who can come along) and push (feet, on a failed save)
 const TELEPORTS = {

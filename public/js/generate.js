@@ -242,24 +242,28 @@ const FAMILY = {
   mine: ['Kobold', 'Duergar', 'Gray Ooze', 'Darkmantle', 'Grick', 'Rust Monster', 'Roper'], fire: ['Magma Mephit', 'Azer', 'Hell Hound', 'Salamander', 'Fire Elemental'],
   water: ['Lizardfolk', 'Giant Toad', 'Crocodile', 'Swarm of Quippers', 'Chuul', 'Water Elemental'], city: ['Bandit', 'Thug', 'Spy', 'Cultist', 'Cult Fanatic', 'Veteran', 'Assassin', 'Doppelganger']
 };
-// XP a party can face per character, D&D 2024: low, moderate, high (the same table as the encounter builder)
-const XP_PC = [null, [50, 75, 100], [100, 150, 200], [150, 225, 400], [250, 375, 500], [500, 750, 1100], [600, 1000, 1400], [750, 1300, 1700], [1000, 1700, 2100], [1300, 2000, 2600], [1600, 2300, 3100],
-  [1900, 2900, 4100], [2200, 3700, 4700], [2600, 4200, 5400], [2900, 4900, 6200], [3300, 5400, 7800], [3800, 6100, 9800], [4500, 7200, 11700], [5000, 8700, 14200], [5500, 10700, 17200], [6400, 13200, 22000]];
+// XP thresholds per character, 2014 Dungeon Master's Guide: easy, medium, hard, deadly (the same table as the encounter builder)
+const XP_PC = [null, [25, 50, 75, 100], [50, 100, 150, 200], [75, 150, 225, 400], [125, 250, 375, 500], [250, 500, 750, 1100], [300, 600, 900, 1400], [350, 750, 1100, 1700], [450, 900, 1400, 2100], [550, 1100, 1600, 2400], [600, 1200, 1900, 2800],
+  [800, 1600, 2400, 3600], [1000, 2000, 3000, 4500], [1100, 2200, 3400, 5100], [1250, 2500, 3800, 5700], [1400, 2800, 4300, 6400], [1600, 3200, 4800, 7200], [2000, 3900, 5900, 8800], [2100, 4200, 6300, 9500], [2400, 4900, 7300, 10900], [2800, 5700, 8500, 12700]];
+// the 2014 encounter multiplier: more monsters count for more (one step up for a party under 3, one down for 6 or more)
+const XP_MULT = (n, party) => { const steps = [0.5, 1, 1.5, 2, 2.5, 3, 4, 5]; let i = n <= 0 ? 1 : n === 1 ? 1 : n === 2 ? 2 : n <= 6 ? 3 : n <= 10 ? 4 : n <= 14 ? 5 : 6; if (party < 3) i++; else if (party >= 6) i--; return steps[Math.max(0, Math.min(7, i))]; };
 const srdEntry = (m) => ({ name: m.name, icon: m.token.icon, color: m.token.color, size: m.token.size, hp: m.hp, init: m.token.init, srd: m.id, xp: m.xp, cr: m.cr });
 function srdPool(lib, fam) { const all = lib && lib.__srd; if (!all || !FAMILY[fam]) return null; const p = FAMILY[fam].map((n) => all.find((m) => m.name === n)).filter(Boolean); return p.length ? p : null; }
 // a group of monsters worth about the party's budget for this kind of room ("boss" a step harder, "light" half)
 function stockMonsters(M, S, pool, kind = 'room', maxN = 6) {
   if (!pool) return [];
   const lvl = Math.max(1, Math.min(20, parseInt(S.partyLevel, 10) || 3)), size = Math.max(1, parseInt(S.partySize, 10) || 4), d = { easy: 0, medium: 1, hard: 2 }[S.difficulty] ?? 1;
-  let budget = XP_PC[lvl][kind === 'boss' ? Math.min(2, d + 1) : d] * size * (kind === 'light' ? 0.5 : kind === 'boss' ? 1.2 : 1);
+  const target = XP_PC[lvl][kind === 'boss' ? Math.min(3, d + 1) : d] * size * (kind === 'light' ? 0.5 : 1);
+  const adj = (list) => list.reduce((a, m) => a + m.xp, 0) * XP_MULT(list.length, size); // what the group counts as
+  let budget = target;
   const maxCr = kind === 'boss' ? lvl + 3 : Math.max(0.5, lvl + (d - 1));
   const fits = pool.filter((m) => m.cr <= maxCr), picks = [];
   if (!fits.length) return [];
-  if (kind === 'boss') { const lead = fits.filter((m) => m.xp <= budget).sort((a, b) => b.xp - a.xp)[0] || fits.sort((a, b) => a.xp - b.xp)[0]; picks.push(lead); budget -= lead.xp; }
+  if (kind === 'boss') { const lead = fits.filter((m) => m.xp <= budget * 0.6).sort((a, b) => b.xp - a.xp)[0] || fits.sort((a, b) => a.xp - b.xp)[0]; picks.push(lead); }
   for (let i = 0; i < 12 && picks.length < maxN; i++) {
-    const c = fits.filter((m) => m.xp <= budget).sort((a, b) => a.xp - b.xp); if (!c.length) break;
+    const c = fits.filter((m) => adj([...picks, m]) <= budget).sort((a, b) => a.xp - b.xp); if (!c.length) break;
     const m = c[Math.floor(M.r() * Math.max(1, Math.ceil(c.length * 0.6)))]; // mostly the weaker ones: a crowd, not a giant
-    picks.push(m); budget -= m.xp;
+    picks.push(m);
   }
   if (!picks.length) { const weakest = fits.sort((a, b) => a.xp - b.xp)[0]; if (weakest.xp <= budget * 2) picks.push(weakest); }
   return picks.map(srdEntry);

@@ -132,15 +132,15 @@ const CONDITIONS = [
   ['marked', 'Marked', 'targeted', '#e11d48'],
   ['baned', 'Baned', 'cursed-star', '#9a3412'], ['slowed', 'Slowed', 'snail', '#0891b2'], ['outlined', 'Faerie fire', 'sparkles', '#a855f7'],
   ['hexed', 'Hexed', 'pentacle', '#6d28d9'], ['shielded', 'Shield of Faith', 'magic-shield', '#2563eb'], ['banished', 'Banished', 'vortex', '#4c1d95'],
-  ['confused', 'Confused', 'spiral-arrow', '#c026d3'], ['enfeebled', 'Enfeebled', 'despair', '#57534e'], ['muddled', 'Muddled', 'brain-freeze', '#7c3aed'],
-  ['haunted', 'Phantasmal Killer', 'haunting', '#4338ca'], ['dancing', 'Dancing', 'swirl-string', '#db2777'], ['befuddled', 'Befuddled', 'brain', '#9333ea'],
+  ['confused', 'Confused', 'spiral-arrow', '#c026d3'], ['enfeebled', 'Enfeebled (half damage with Strength weapons)', 'despair', '#57534e'], ['muddled', 'Muddled', 'brain-freeze', '#7c3aed'],
+  ['haunted', 'Phantasmal Killer', 'haunting', '#4338ca'], ['dancing', 'Dancing (Disadvantage on Dex saves and attacks; attacks against it have Advantage)', 'swirl-string', '#db2777'], ['befuddled', 'Befuddled', 'brain', '#9333ea'],
   ['commanded', 'Commanded', 'tied-scroll', '#a16207'], ['heroism', 'Heroism', 'muscle-up', '#ea580c'], ['holyaura', 'Holy Aura', 'holy-symbol', '#facc15'],
   ['cursed', 'Cursed', 'death-skull', '#581c87'], ['dazed', 'Dazed', 'magic-swirl', '#0e7490'], ['afflicted', 'Afflicted', 'bandaged', '#65a30d'],
   ['warded', 'Spell protection', 'checked-shield', '#0284c7'], ['glowing', 'Guiding Bolt', 'sun', '#fbbf24'], ['transformed', 'Transformed', 'wolf-howl', '#15803d'],
   ['dodging', 'Dodging', 'dodging', '#0891b2'], ['disengaged', 'Disengaged', 'run', '#4d7c0f'], ['distracted', 'Helped against (next attack has Advantage)', 'hand', '#ca8a04'],
   ['sapped', 'Sapped (Disadvantage on its next attack)', 'broken-shield', '#78350f'], ['vexed', 'Vexed (Advantage on the next attack against it)', 'targeted', '#be123c'], ['hobbled', 'Slowed by a weapon (-10 ft)', 'snail', '#0e7490'],
   ['cover-half', 'Half cover (+2 AC and Dex saves)', 'stone-wall', '#57534e'], ['cover-3q', 'Three-quarters cover (+5 AC and Dex saves)', 'stone-tower', '#44403c'],
-  ['mirrored', 'Mirror Image', 'mirror-mirror', '#7c3aed'], ['levitating', 'Levitating', 'feather', '#38bdf8'], ['enhanced', 'Enhance Ability (Advantage on checks)', 'upgrade', '#16a34a'], ['caged', 'Forcecage (can\'t leave)', 'cage', '#64748b'], ['surprised', 'Surprised (Disadvantage on initiative)', 'surprised', '#f59e0b'], ['blinking', 'Blink (in the Ethereal Plane)', 'teleport', '#6d28d9'], ['hidden', 'Hidden', 'hood', '#1f2937'], ['dead', 'Dead', 'skull-crossed-bones', '#111827']
+  ['mirrored', 'Mirror Image', 'mirror-mirror', '#7c3aed'], ['levitating', 'Levitating', 'feather', '#38bdf8'], ['enhanced', 'Enhance Ability (Advantage on checks)', 'upgrade', '#16a34a'], ['caged', 'Forcecage (can\'t leave)', 'cage', '#64748b'], ['surprised', 'Surprised (no move, action or reaction on its first turn)', 'surprised', '#f59e0b'], ['blinking', 'Blink (in the Ethereal Plane)', 'teleport', '#6d28d9'], ['hidden', 'Hidden', 'hood', '#1f2937'], ['staggered', 'Staggered (Disadvantage on attacks and checks, no reactions)', 'knocked-out-stars', '#b45309'], ['retching', 'Retching (no action this turn)', 'vomiting', '#65a30d'], ['branded', 'Branding Smite (glows; can\'t be invisible)', 'sun', '#f59e0b'], ['resisting', 'Resistance (+1d4 to one save)', 'shield-reflect', '#0284c7'], ['dead', 'Dead', 'skull-crossed-bones', '#111827']
 ];
 
 const icons = {}, library = [], missing = [];

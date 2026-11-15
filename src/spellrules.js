@@ -1,5 +1,5 @@
 const SUMS = require('./summons');
-// What a spell does beyond its dice, by the 2024 Player's Handbook: the conditions it puts on its targets, how each
+// What a spell does beyond its dice, by the 2014 Player's Handbook (1.21; it followed the 2024 book before): the conditions it puts on its targets, how each
 // target gets out of it again, and spells split into darts, rays or beams. Worked out from the spell's name (and its
 // description for darts and rays), so it also fills in characters brought in from D&D Beyond before these rules existed.
 //
@@ -21,7 +21,9 @@ const SUMS = require('./summons');
 //   again    the spell keeps doing it while you concentrate (Sunbeam's new line, Bigby's Hand, a creature entering the area)
 //   afterEnd what happens when the spell ends (Haste: incapacitated until the end of its next turn)
 //   onSave   what a successful first save still does (Irresistible Dance: dancing until the end of its next turn)
-// Prone stays when a spell ends: standing up is the creature's own doing. Unconscious ending leaves it prone (2024 rules).
+// Prone stays when a spell ends: standing up is the creature's own doing. Unconscious creatures fall prone.
+//   hpPool   Sleep, Color Spray (2014): roll the dice; creatures are affected from the lowest current hit points up while
+//            the total lasts, with no saving throw
 
 const R = (add, save, x = {}) => ({ add, save, ...x });
 const FOE_CHARM_HURT = (save = 'WIS', x = {}) => R(['charmed'], save, { hurt: 'end', ...x });
@@ -32,23 +34,22 @@ const RULES = {
   'slow': R(['slowed'], 'WIS', { end: true }),
   'blindness/deafness': R(['blinded'], 'CON', { end: true, options: [{ name: 'Blinded', add: ['blinded'] }, { name: 'Deafened', add: ['deafened'] }] }),
   'blinding smite': R(['blinded'], 'CON', { end: true }),
-  'wrathful smite': R(['frightened'], 'WIS', { end: true }),
+  'wrathful smite': R(['frightened'], 'WIS', { escape: 'check', checkAbl: 'WIS' }), // 2014: its action, a Wisdom check
   'cause fear': R(['frightened'], 'WIS', { end: true }),
   'crown of madness': R(['charmed'], 'WIS', { end: true }),
   'confusion': R(['confused'], 'WIS', { end: true }),
-  'ray of enfeeblement': R(['enfeebled'], 'CON', { end: true }),
+  'ray of enfeeblement': R(['enfeebled'], null, { onHit: true, end: true, endSave: 'CON' }), // 2014: a spell attack; half damage with Strength weapons
   'synaptic static': R(['muddled'], 'INT', { end: true }),
   'sunburst': R(['blinded'], 'CON', { end: true }),
   'power word stun': R(['stunned'], null, { end: true, endSave: 'CON', hpCap: 150 }),
-  'phantasmal killer': R(['haunted'], 'WIS', { end: true, tick: { when: 'end', dice: '4d10', type: 'psychic', onFail: true } }),
+  'phantasmal killer': R(['frightened'], 'WIS', { end: true, tick: { when: 'end', dice: '4d10', type: 'psychic', onFail: true } }),
   'weird': R(['frightened'], 'WIS', { end: true, tick: { when: 'end', dice: '5d10', type: 'psychic', onFail: true } }),
   "tasha's hideous laughter": R(['prone', 'incapacitated'], 'WIS', { end: true, hurt: 'adv' }),
   'hideous laughter': R(['prone', 'incapacitated'], 'WIS', { end: true, hurt: 'adv' }),
-  'contagion': R(['poisoned'], 'CON', { end: true, count: 'stay' }),
+  'contagion': R(['poisoned'], null, { onHit: true, end: true, endSave: 'CON', count: 'stay' }), // 2014: a melee spell attack, then three saves
   'flesh to stone': R(['restrained'], 'CON', { end: true, count: 'petrified' }),
   // ---- saves at the start of each of its turns
-  'searing smite': R(['burning'], null, { start: true, endSave: 'CON', tick: { when: 'start', dice: '1d6', type: 'fire' } }),
-  'conjure elemental': R(['restrained'], 'DEX', { start: true, tick: { when: 'start', dice: '4d8', type: '', onFail: true }, again: true }),
+  'searing smite': R(['burning'], null, { start: true, endSave: 'CON', tick: { when: 'start', dice: '1d6', type: 'fire', onFail: true } }),
   // ---- taking damage
   'dominate person': R(['charmed'], 'WIS', { hurt: 'save' }),
   'dominate beast': R(['charmed'], 'WIS', { hurt: 'save' }),
@@ -56,13 +57,12 @@ const RULES = {
   'charm person': FOE_CHARM_HURT(),
   'charm monster': FOE_CHARM_HURT(),
   'animal friendship': FOE_CHARM_HURT(),
-  'friends': FOE_CHARM_HURT(),
   'suggestion': FOE_CHARM_HURT(),
   'mass suggestion': FOE_CHARM_HURT(),
   'awaken': R(['charmed'], null, { ally: true, hurt: 'end' }),
   'hypnotic pattern': R(['charmed', 'incapacitated'], 'WIS', { hurt: 'end' }),
   'modify memory': R(['charmed', 'incapacitated'], 'WIS', { hurt: 'end' }),
-  'sleep': R(['incapacitated'], 'WIS', { sleep: true, hurt: 'end' }),
+  'sleep': R(['unconscious'], null, { hpPool: { dice: '5d8', per: '2d8', skip: ['undead'] }, hurt: 'end' }), // 2014: 5d8 hit points' worth, lowest first
   'eyebite': R(['unconscious'], 'WIS', { again: true, options: [{ name: 'Asleep', add: ['unconscious'], hurt: 'end' }, { name: 'Panicked', add: ['frightened'] }, { name: 'Sickened', add: ['poisoned'] }] }),
   // ---- breaking free with an action
   'web': R(['restrained'], 'DEX', { escape: 'athletics', again: true }),
@@ -70,43 +70,45 @@ const RULES = {
   'ensnaring strike': R(['restrained'], 'STR', { escape: 'athletics', tick: { when: 'start', dice: '1d6', type: 'piercing' } }),
   "evard's black tentacles": R(['restrained'], 'STR', { escape: 'athletics', again: true }),
   'black tentacles': R(['restrained'], 'STR', { escape: 'athletics', again: true }),
-  "bigby's hand": R(['grappled'], 'DEX', { escape: 'grapple', again: true }),
-  'grasping vine': R(['grappled'], null, { escape: 'grapple', again: true }),
-  "otto's irresistible dance": R(['charmed'], 'WIS', { escape: 'save', onSave: { add: ['dancing'], expire: 'tgtEnd' } }),
-  'irresistible dance': R(['charmed'], 'WIS', { escape: 'save', onSave: { add: ['dancing'], expire: 'tgtEnd' } }),
+  "bigby's hand": R(['grappled'], 'STR', { escape: 'grapple', again: true }), // 2014: a grapple check against its Athletics or Acrobatics
+  // 2014: no save to start with; it dances until it uses its action for a Wisdom save
+  "otto's irresistible dance": R(['dancing'], null, { escape: 'save', endSave: 'WIS' }),
+  'irresistible dance': R(['dancing'], null, { escape: 'save', endSave: 'WIS' }),
   // ---- the DM judges when the save comes
   'fear': R(['frightened'], 'WIS', { manual: 'If it ended its turn out of sight of the caster, it repeats the save' }),
-  'compulsion': R(['charmed'], 'WIS', { manual: 'After it moves in the chosen direction, it repeats the save' }),
+  'compulsion': R(['commanded'], 'WIS', { manual: 'After it moves in the chosen direction, it repeats the save' }),
+  'feeblemind': R(['befuddled'], 'INT', { manual: 'Its Intelligence and Charisma are 1. It repeats the save every 30 days' }),
   'befuddlement': R(['befuddled'], 'INT', { manual: 'It repeats the save at the end of every 30 days' }),
   // ---- for a set time
-  'color spray': R(['blinded'], 'CON', { expire: 'srcEnd' }),
-  'staggering smite': R(['stunned'], 'WIS', { expire: 'srcEnd' }),
-  'ray of sickness': R(['poisoned'], null, { expire: 'srcEnd' }),
+  'color spray': R(['blinded'], null, { hpPool: { dice: '6d10', per: '2d10' }, expire: 'srcEnd' }), // 2014: 6d10 hit points' worth, lowest first
+  'staggering smite': R(['staggered'], 'WIS', { expire: 'tgtEnd' }), // 2014: Disadvantage on attacks and checks, no reactions
+  'ray of sickness': R(['poisoned'], 'CON', { expire: 'srcEnd', onHit: true }), // 2014: a hit, then a Constitution save
   'telekinesis': R(['restrained'], 'STR', { expire: 'srcEnd', again: true }),
   'sunbeam': R(['blinded'], 'CON', { expire: 'srcStart', again: true }),
-  'conjure fey': R(['frightened'], null, { expire: 'srcStart', again: true }),
   'fount of moonlight': R(['blinded'], 'CON', { expire: 'srcEnd', again: true, reaction: true }),
   'holy aura': R(['holyaura'], null, { ally: true, again: true }),
-  'stinking cloud': R(['poisoned'], 'CON', { expire: 'thisTurn', again: true }),
+  'stinking cloud': R(['retching'], 'CON', { expire: 'thisTurn', again: true }), // 2014: it spends its action retching
   'command': R(['commanded'], 'WIS', { expire: 'tgtEnd', options: [{ name: 'Approach' }, { name: 'Drop' }, { name: 'Flee' }, { name: 'Grovel', add: ['commanded', 'prone'] }, { name: 'Halt' }] }),
   // ---- until the spell ends (concentration, or its duration)
   'bless': R(['blessed'], null, { ally: true }),
   'bane': R(['baned'], 'CHA'),
   'faerie fire': R(['outlined'], 'DEX'),
-  'shining smite': R(['outlined'], null), // 2024 (2014's Branding Smite): it glows, can't be Invisible, attacks against it have Advantage
+  'branding smite': R(['branded'], null, { onHit: true }), // 2014: it sheds light and can't be Invisible
+  'shining smite': R(['branded'], null),
   'shield of faith': R(['shielded'], null, { ally: true }), // +2 AC (worked out from the condition)
+  'beast bond': R([], null, { ally: true }),
   'haste': R(['hasted'], null, { ally: true, afterEnd: { add: ['incapacitated'], expire: 'tgtEnd' } }),
   'heroism': R(['heroism'], null, { ally: true, removes: ['frightened'], tempTick: true }),
   'invisibility': R(['invisible'], null, { ally: true }),
   'greater invisibility': R(['invisible'], null, { ally: true }),
-  'mislead': R(['invisible'], null, { ally: true }),
+  'mislead': R(['invisible'], null, { ally: true, self: true }),
   "hunter's mark": R(['marked'], null),
   'hex': R(['hexed'], null),
   'bestow curse': R(['cursed'], 'WIS'),
   'banishment': R(['banished', 'incapacitated'], 'CHA'),
   // 1.19.6, from checking the 2014 Player's Handbook: Levitate, Enhance Ability, Forcecage
   'levitate': R(['levitating'], 'CON'),
-  'enhance ability': R(['enhanced'], null, { ally: true, options: [['Strength', 'STR'], ['Dexterity', 'DEX'], ['Intelligence', 'INT'], ['Wisdom', 'WIS'], ['Charisma', 'CHA']].map(([name, a]) => ({ name, add: ['enhanced'], checkAdv: a })) }),
+  'enhance ability': R(['enhanced'], null, { ally: true, options: [["Bull's Strength", 'STR'], ["Cat's Grace", 'DEX'], ["Bear's Endurance", 'CON'], ["Fox's Cunning", 'INT'], ["Owl's Wisdom", 'WIS'], ["Eagle's Splendor", 'CHA']].map(([name, a]) => ({ name, add: ['enhanced'], checkAdv: a, ...(a === 'CON' ? { tempDice: '2d6' } : {}) })) }),
   'forcecage': R(['caged'], null),
   'banishing smite': R(['banished', 'incapacitated'], 'CHA'),
   'geas': R(['charmed'], 'WIS'),
@@ -120,13 +122,13 @@ const RULES = {
   'astral projection': R(['unconscious'], null, { ally: true }),
   'antipathy/sympathy': R(['frightened'], 'WIS', { options: [{ name: 'Antipathy', add: ['frightened'] }, { name: 'Sympathy', add: ['charmed'] }] }),
   'imprisonment': R(['restrained'], 'WIS', { options: [{ name: 'Chaining', add: ['restrained'] }, { name: 'Slumber', add: ['unconscious'] }, { name: 'Burial', add: ['restrained'] }, { name: 'Hedged Prison', add: ['banished'] }, { name: 'Minimus Containment', add: ['restrained'] }] }),
-  'symbol': R(['frightened'], 'WIS', { options: [{ name: 'Fear', add: ['frightened'] }, { name: 'Pain', add: ['incapacitated'], save: 'CON' }, { name: 'Sleep', add: ['unconscious'], hurt: 'end' }, { name: 'Stunning', add: ['stunned'] }, { name: 'Discord', add: ['confused'] }] }),
+  'symbol': R(['frightened'], 'WIS', { options: [{ name: 'Death (10d10 necrotic, CON)', add: [], save: 'CON' }, { name: 'Discord', add: ['confused'], save: 'CON' }, { name: 'Fear', add: ['frightened'] }, { name: 'Hopelessness', add: ['commanded'], save: 'CHA' }, { name: 'Insanity', add: ['confused'], save: 'INT' }, { name: 'Pain', add: ['incapacitated'], save: 'CON' }, { name: 'Sleep', add: ['unconscious'], hurt: 'end' }, { name: 'Stunning', add: ['stunned'] }] }),
   'divine word': R([], 'CHA', { divine: true }),
   // Prismatic Spray and Wall: pick the colour that hit (the damage colours are rolled from the spell's own dice)
   'prismatic spray': R([], 'DEX', { options: [{ name: 'Red, Orange, Yellow, Green or Blue (damage only)', add: [] }, { name: 'Indigo', add: ['restrained'], end: true, endSave: 'CON', count: 'petrified' }, { name: 'Violet', add: ['blinded'], manual: 'At the start of your next turn it makes a Wisdom save: a success ends it, a failure sends it to another plane' }] }),
   'prismatic wall': R(['blinded'], 'CON', { rounds: 10, options: [{ name: 'Blinded by the wall (1 minute)', add: ['blinded'], save: 'CON' }, { name: 'Indigo layer', add: ['restrained'], save: 'DEX', end: true, endSave: 'CON', count: 'petrified' }, { name: 'Violet layer', add: ['blinded'], save: 'DEX', manual: 'At the start of your next turn it makes a Wisdom save: a success ends it, a failure sends it to another plane' }, { name: 'Another layer (damage only)', add: [], save: 'DEX' }] }),
   'sequester': R(['invisible', 'unconscious'], null, { ally: true }),
-  'wind walk': R(['stunned'], null, { ally: true, rounds: 10 }),
+  'wind walk': R(['incapacitated'], null, { ally: true, rounds: 10 }),
   'meld into stone': R([], null, { ally: true }),
   // ---- knocked down (prone stays; no save to end it)
   'grease': R(['prone'], 'DEX', { again: true }),
@@ -142,7 +144,7 @@ const RULES = {
   //   advSaves [abilities, 'death'] · maxHeal (healing is maximised) · agathys (cold damage back when hit) · weaponDmg
   'shield': R(['warded'], null, { ally: true, self: true, ac: 5, expire: 'srcStart' }),
   'mage armor': R(['warded'], null, { ally: true, acBase: 13 }),
-  'barkskin': R(['warded'], null, { ally: true, acMin: 17 }),
+  'barkskin': R(['warded'], null, { ally: true, acMin: 16 }),
   'warding bond': R(['warded'], null, { ally: true, ac: 1, saves: 1, resist: 'all' }),
   'stoneskin': R(['warded'], null, { ally: true, resist: ['bludgeoning', 'piercing', 'slashing'] }),
   'protection from energy': R(['warded'], null, { ally: true, options: ['acid', 'cold', 'fire', 'lightning', 'thunder'].map((t) => ({ name: t[0].toUpperCase() + t.slice(1), resist: [t] })) }),
@@ -150,7 +152,7 @@ const RULES = {
   'aura of life': R(['warded'], null, { ally: true, resist: ['necrotic'] }),
   'aura of purity': R(['warded'], null, { ally: true, resist: ['poison'] }),
   'blur': R(['warded'], null, { ally: true, self: true, disAgainst: true }),
-  'blade ward': R(['warded'], null, { ally: true, self: true, atkAgainst: '-1d4' }),
+  'blade ward': R(['warded'], null, { ally: true, self: true, resist: ['bludgeoning', 'piercing', 'slashing'], expire: 'srcEnd' }), // 2014: resistance to weapon damage
   'death ward': R(['warded'], null, { ally: true, deathWard: true }),
   'protection from evil and good': R(['warded'], null, { ally: true, disFrom: ['aberration', 'celestial', 'elemental', 'fey', 'fiend', 'undead'] }),
   'sanctuary': R(['warded'], null, { ally: true, sanctuary: true }),
@@ -158,16 +160,16 @@ const RULES = {
   "heroes' feast": R(['warded'], null, { ally: true, resist: ['poison'], immune: ['frightened', 'poisoned'], maxUpDice: '2d10' }),
   'armor of agathys': R(['warded'], null, { ally: true, self: true, agathys: 5 }),
   'divine favor': R(['warded'], null, { ally: true, self: true, weaponDmg: { dice: '1d4', type: 'radiant' } }),
-  'elemental weapon': R(['warded'], null, { ally: true, weaponDmg: { dice: '1d4', type: 'fire' } }),
+  'elemental weapon': R(['warded'], null, { ally: true, weaponHit: 1, options: ['acid', 'cold', 'fire', 'lightning', 'thunder'].map((t) => ({ name: t[0].toUpperCase() + t.slice(1), weaponDmg: { dice: '1d4', type: t } })) }),
   'guiding bolt': R(['glowing'], null, { advAgainst: 'once', expire: 'srcEnd', onHit: true }),
   'mind spike': R([], null),
   // ---- back from the brink
-  'power word heal': R([], null, { ally: true, healFull: true, removes: ['charmed', 'frightened', 'paralyzed', 'poisoned', 'stunned'] }),
+  'power word heal': R([], null, { ally: true, healFull: true, removes: ['charmed', 'frightened', 'paralyzed', 'stunned'] }),
   'revivify': R([], null, { ally: true, revive: 1 }),
   'raise dead': R([], null, { ally: true, revive: 1 }),
   'resurrection': R([], null, { ally: true, revive: 'full' }),
   'true resurrection': R([], null, { ally: true, revive: 'full' }),
-  'power word kill': R([], null, { pwk: 100 }),
+  'power word kill': R([], null, { pwk: 100 }), // 2014: 100 hit points or fewer, it dies; otherwise nothing
   'vampiric touch': R([], null, { drain: 0.5, again: true }),
   'aura of vitality': R([], null, { ally: true, again: true, heal: '2d6' }),
   // ---- damage that comes later: the second part isn't dealt straight away
@@ -199,12 +201,12 @@ const RULES = {
   'shapechange': R(['transformed'], null, { ally: true, self: true }),
   "otiluke's resilient sphere": R(['banished'], 'DEX'),
   'resilient sphere': R(['banished'], 'DEX'),
-  'counterspell': R([], 'CON', { saveOnly: 'its spell fails' }),
+  'counterspell': R([], null), // 2014: no save; the prompt when a spell is cast does the rest
   'mirror image': R(['mirrored'], null, { ally: true, self: true, dupes: 3 }),
   'blink': R(['warded'], null, { ally: true, self: true, blink: true }),
-  'resistance': R(['warded'], null, { ally: true, options: ['acid', 'bludgeoning', 'cold', 'fire', 'lightning', 'necrotic', 'piercing', 'poison', 'radiant', 'slashing', 'thunder'].map((t) => ({ name: t[0].toUpperCase() + t.slice(1), reduce: { type: t, dice: '1d4' } })) }),
+  'resistance': R(['resisting'], null, { ally: true }), // 2014: +1d4 to one saving throw, then it ends
   'divine smite': R([], null, { vsTypes: { types: ['fiend', 'undead'], dice: '1d8' } }),
-  'true strike': R([], null, { trueStrike: true }),
+  'true strike': R(['glowing'], null, { advAgainst: 'once', expire: 'srcEnd' }), // 2014: Advantage on your first attack against it next turn
   'calm emotions': R([], null, { ally: true, cure: true, cures: ['charmed', 'frightened'] }),
   'heroism ': R([], null)
 };
@@ -221,7 +223,7 @@ function roundsOf(duration) {
   return +m[1] * ({ round: 1, minute: 10, hour: 600, day: 14400 })[m[2].toLowerCase()];
 }
 
-// the 2024 spell table (public/spells.json): fills in what D&D Beyond left out (a second damage type, healing, an area…)
+// the spell table (public/spells.json, 2014 rules since 1.21): fills in what D&D Beyond left out (a second damage type, healing, an area…)
 let DB = null;
 function dbSpell(name) {
   if (!DB) { try { const j = require('../public/spells.json'); DB = { by: new Map(j.spells.map((x) => [x.name.toLowerCase(), x])), alias: j.alias || {} }; } catch { DB = { by: new Map(), alias: {} }; } }
@@ -242,7 +244,7 @@ function fromDb(e, o = {}) {
 }
 function enrich(sp, level) {
   if (!sp || !sp.name) return sp;
-  // fill the gaps from the 2024 table, keeping what D&D Beyond said
+  // fill the gaps from the spell table, keeping what D&D Beyond said
   const e = dbSpell(sp.name);
   if (e) {
     const parts = e.dmg || [];
@@ -301,6 +303,8 @@ function enrichCharacter(ch) {
   // a paladin's Aura of Protection: allies nearby add the paladin's Charisma modifier to their saves (level 6; 30 ft at 18)
   const pl = classLevel(ch, 'Paladin'), cha = ((ch.abilities || [])[5] || {}).mod || 0;
   ch.aura = pl >= 6 ? { bonus: Math.max(1, cha), feet: pl >= 18 ? 30 : 10, courage: pl >= 10 } : null;
+  // Divine Smite (Paladin 2, 2014): a feature that spends a slot, offered with the spells
+  if (classLevel(ch, 'Paladin') >= 2 && Array.isArray(ch.spells) && !ch.spells.some((x) => /^divine smite$/i.test(x.name))) { const e = dbSpell('Divine Smite'); if (e) ch.spells.push(fromDb(e, { dc: (ch.casting || {}).dc, attack: (ch.casting || {}).attack, mod: (ch.casting || {}).attack - (ch.prof || 2), level: levelOf(ch) })); }
   // Evasion (Rogue 7, Monk 7): a Dexterity save for half damage takes none on a success and half on a failure
   ch.evasion = classLevel(ch, 'Rogue') >= 7 || classLevel(ch, 'Monk') >= 7;
   const FE = require('./features');
@@ -308,34 +312,35 @@ function enrichCharacter(ch) {
   // characters brought in before 1.18: an Unarmed Strike and Hit Dice
   if (Array.isArray(ch.attacks) && !ch.attacks.some((x) => x.name === 'Unarmed Strike')) { const st = ((ch.abilities || [])[0] || {}).mod || 0; ch.attacks.push({ name: 'Unarmed Strike', base: 'Unarmed Strike', hit: '1d20' + (st + (ch.prof || 2) >= 0 ? '+' : '') + (st + (ch.prof || 2)), damage: String(Math.max(1, 1 + st)), type: 'Bludgeoning', mod: st, reach: 5 }); }
   if (!ch.hitDice) { const HD = { Barbarian: 12, Fighter: 10, Paladin: 10, Ranger: 10, Sorcerer: 6, Wizard: 6 }; ch.hitDice = [...String(ch.classes || '').matchAll(/(\w+)(?: \([^)]*\))? (\d+)/g)].map((m) => ({ die: HD[m[1]] || 8, max: +m[2], used: 0, cls: m[1] })); }
-  // Weapon Mastery (2024): Barbarians, Fighters, Paladins, Rangers and Rogues use their weapons' mastery properties
-  ch.mastery = ['Barbarian', 'Fighter', 'Paladin', 'Ranger', 'Rogue'].some((c) => classLevel(ch, c) >= 1);
+  // Weapon Mastery is a 2024 rule: off since 1.21 (2014 rules)
+  ch.mastery = false;
   ch.featureInfo = ch.features.map((n) => { const f = FE.FEATURES.find((x) => x.name === n); return { name: n, options: (f.options || []).map((o) => o.name), note: f.note || '', cost: f.cost || '', save: f.save || '', dc: FE.dcFor(ch, f.dc) }; });
   return ch;
 }
 
-// areas that keep working after the spell is cast (1.18): when a creature enters, starts or ends its turn there.
+// areas that keep working after the spell is cast (1.18): when a creature enters, starts or ends its turn there
+// (2014 timing since 1.21: most of them on entering or starting a turn there).
 //  'spell' means the spell's own save, damage and conditions; follow: the area moves with the caster (Spirit Guardians);
 //  others: only the caster's foes; inside: conditions while in the area (Silence: deafened); move: damage per 5 feet
 //  moved in it (Spike Growth); once a turn for each creature
 const ZONES = {
-  'spirit guardians': { follow: 15, others: true, enter: 'spell', end: 'spell' },
+  'spirit guardians': { follow: 15, others: true, enter: 'spell', start: 'spell' },
   "yolande's regal presence": { follow: 10, others: true, enter: 'spell', end: 'spell' },
-  'moonbeam': { enter: 'spell', end: 'spell' },
-  'cloudkill': { enter: 'spell', end: 'spell' },
-  'cloud of daggers': { enter: 'spell', end: 'spell' },
+  'moonbeam': { enter: 'spell', start: 'spell' },
+  'cloudkill': { enter: 'spell', start: 'spell' },
+  'cloud of daggers': { enter: 'spell', start: 'spell' },
   'incendiary cloud': { enter: 'spell', end: 'spell' },
   'insect plague': { enter: 'spell', end: 'spell' },
-  'blade barrier': { enter: 'spell', end: 'spell' },
-  'wall of thorns': { enter: 'spell', end: 'spell' },
+  'blade barrier': { enter: 'spell', start: 'spell' },
+  'wall of thorns': { enter: 'spell', start: 'spell' },
   'wall of fire': { enter: 'nosave', end: 'nosave' },
   "jallarzi's storm of radiance": { enter: 'spell', end: 'spell', inside: ['blinded', 'deafened'] },
-  "evard's black tentacles": { enter: 'spell', end: 'spell' },
+  "evard's black tentacles": { enter: 'spell', start: 'spell' },
   'web': { enter: 'spell', start: 'spell' },
   'grease': { enter: 'spell', end: 'spell' },
   'sleet storm': { enter: 'spell', start: 'spell' },
   'stinking cloud': { start: 'spell' },
-  'guardian of faith': { others: true, enter: 'spell', start: 'spell' },
+  'guardian of faith': { others: true, enter: 'spell' },
   'flaming sphere': { end: 'spell' },
   'hunger of hadar': { inside: ['blinded'], start: { dmg: [{ dice: '2d6', type: 'cold' }] }, end: { save: 'DEX', dmg: [{ dice: '2d6', type: 'acid' }] } },
   'spike growth': { move: { dice: '2d4', type: 'piercing' } },
