@@ -2,6 +2,11 @@
 
 All notable changes to Tabletop. Newest first. Each version's section is used as the release notes on GitHub.
 
+## [1.21.1] - 2026-11-15
+
+### Fixed
+- **No more name box flashing up when the DM app starts (#7):** the "Join the table" box showed for a moment before Tabletop DM signed you in as the DM. It now only appears when someone opens the table without a name.
+
 ## [1.21.0] - 2026-11-15
 
 Tabletop now plays by the 2014 rules, as the group asked: the 2014 Player's Handbook (with Xanathar's and Tasha's), the 2014 monsters and the 2014 Dungeon Master's Guide. The 2024 versions are gone.

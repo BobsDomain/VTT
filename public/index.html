@@ -262,6 +262,7 @@
   #gate p { color:var(--dim); margin:6px 0 12px; }
   #gate input { width:100%; }
   #join { position:fixed; inset:0; background:rgba(0,0,0,.82); display:flex; align-items:center; justify-content:center; z-index:20; }
+  #join[hidden] { display:none; }
   #join form { background:var(--panel); padding:24px; border-radius:10px; width:320px; border-top:3px solid var(--accent); }
   #eSummon[hidden] { display:none!important; }
   #partyList .pm { display:grid; grid-template-columns:22px 1fr auto; gap:2px 8px; align-items:center; padding:4px 6px; border-radius:6px; cursor:pointer; }
@@ -1003,7 +1004,7 @@
   <input id="gateCode" placeholder="Passcode" maxlength="40" autocomplete="off" spellcheck="false">
   <div class="row"><button id="gateGo" class="primary">Join</button></div>
 </form></div>
-<div id="join"><form id="joinForm">
+<div id="join" hidden><form id="joinForm">
   <h2>Join the table</h2>
   <input id="name" placeholder="Your name (same as your character)" required autofocus maxlength="24">
   <div class="row"><button class="primary">Join</button></div>

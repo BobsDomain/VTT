@@ -3875,6 +3875,7 @@ window.tabletop = { resetPanels, view, sound: snd, diceBusy: () => dice3d.busy()
 const preset = params.get('name') || (dmKey ? 'DM' : '');
 if (preset) start(preset);
 else {
+  $('join').hidden = false; setTimeout(() => $('name').focus(), 0); // only when there's no name yet (a browser): the DM and the player app never see it (#7)
   $('name').value = tryGet('vtt-name') || '';
   $('joinForm').onsubmit = (e) => { e.preventDefault(); const n = $('name').value.trim(); if (!n) return; trySet('vtt-name', n); start(n); };
 }
