@@ -15,6 +15,7 @@ Feature requests sent to the Tabletop Telegram bot (`/request`). The bot keeps t
 | [#17](https://github.com/CPSDomain/VTT/issues/17) | Remove My Quick Rolls window because that's already in My Character window | 1 | 💡 Requested |
 | [#18](https://github.com/CPSDomain/VTT/issues/18) | Make the Conditions section collapsible. we don't need all 80 conditions visible and click | 1 | 💡 Requested |
 | [#19](https://github.com/CPSDomain/VTT/issues/19) | For the DM, add quick-click buttons for monsters in their Selected Token window, like atta | 1 | 💡 Requested |
+| [#20](https://github.com/CPSDomain/VTT/issues/20) | For the DM, allow double-click with nothing else on the cursor to open and close doors and | 1 | 💡 Requested |
 | [#1](https://github.com/CPSDomain/VTT/issues/1) | Cone spells always originate from the caster | 1 | ✅ Done |
 | [#2](https://github.com/CPSDomain/VTT/issues/2) | Healer needs a view for all players and DM would need to see all player HP as well | 1 | ✅ Done |
 | [#3](https://github.com/CPSDomain/VTT/issues/3) | Option to hide hp bar of npcs | 1 | ✅ Done |
