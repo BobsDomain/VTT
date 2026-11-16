@@ -55,6 +55,7 @@ Full walkthroughs: **[DM guide](docs/DM-GUIDE.md)** · **[Player guide](docs/PLA
 - Round portrait tokens from any picture, with a frame
 - The DM and player guides as PDFs, from **Help** in each app
 - Side panels pop out into floating windows you can move, resize and dock back
+- Each map has an entrance: characters arrive there, players' screens open there, and the DM moves the whole party to a new map in one click
 - Reactions by the rules: one-click opportunity attacks and Counterspell, asked of whoever can react; grappled creatures are dragged along
 - Summon spells put their creatures on the map with their attacks; Misty Step and Dimension Door teleport where you click; Thunderwave and Gust of Wind push
 

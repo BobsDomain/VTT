@@ -36,7 +36,7 @@ The app remembers the address and your name. **Table → Disconnect** (Ctrl+D) g
 
 You get your portrait, hit points, AC, speed, initiative and darkvision, and a button for every roll on your sheet: attacks (to hit and damage), ability checks, saving throws and skills. Shift-click rolls with advantage, Alt-click with disadvantage.
 
-- **📍 Put my token on the map** places your token in the middle of your view. Click it again on another map to bring your character there, or after an update to refresh your token.
+- **📍 Put my token on the map** places your token at the map's entrance, where the party arrives (or in the middle of your view if the DM hasn't set one). Click it again on another map to bring your character there, or after an update to refresh your token.
 - **Spells:** your slots are pips (click to tick one off or back). Click a spell to open it: **Cast** spends a slot (pick a higher one to upcast), **As a ritual** spends none, and the buttons roll its attack, damage or healing. **◎ Area** gets its template ready to drag onto the map. **☾ Short rest** and **⛺ Long rest** bring slots (and on a long rest, hit points) back.
 - **Healing, damage and protection go straight onto the map:** **Cast** a spell like Cure Wounds, Healing Word, Fireball or False Life, then click the tokens it's for (they get a dashed ring). **Me** adds your own token; **In my area** adds every token inside the area you placed. Click **Apply**: the slot is spent, the dice roll for everyone, and hit points change at once. Attack spells roll against each target's AC, save spells make each target save (half damage where the spell says so). `Esc` or **Cancel** stops without spending anything.
 - **Darts, rays and beams** (Magic Missile, Scorching Ray, Eldritch Blast): click a token once for every dart or ray you send at it, Shift+click to take one back.
@@ -54,6 +54,7 @@ You get your portrait, hit points, AC, speed, initiative and darkvision, and a b
 
 ## What you'll see
 
+- **A new map:** when the DM moves the party, your character arrives at the map's entrance and your screen opens there.
 - **Your turn:** in combat, a banner says whose turn it is, and a big one with a chime says when it's yours.
 - **Places you've been** stay on your map in faded grey while your character can't see them; what you see by **darkvision** in the dark is in black and white.
 - **Chests:** click one with the **Door** tool to open it.

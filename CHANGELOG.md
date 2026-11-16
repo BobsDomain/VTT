@@ -2,6 +2,21 @@
 
 All notable changes to Tabletop. Newest first. Each version's section is used as the release notes on GitHub.
 
+## [1.22.0] - 2026-11-16
+
+Every map can have an entrance, where the party arrives.
+
+### Added
+- **The map's entrance:**
+  - **Generated maps** remember their way in: the dungeon's first room, the cave mouth, the town gate, the gangplank.
+  - **Mark one yourself:** the **🚪 Entrance** tool in Build mode (key N): drag a rectangle, or click for 3×3 squares. The DM sees it as a dashed green box; players don't.
+- **Tokens and views start at the entrance:**
+  - **Put my token on the map** puts a character at the entrance, on the nearest free square.
+  - **Players' screens** open on the entrance when the DM switches them to a map (or on their own character if it's already there).
+- **Move the party:**
+  - **When you change maps:** showing players a map with an entrance asks the DM whether to bring the party there. Everyone's character moves over from the old map, and players with a character but no token get one.
+  - **Any time:** **🚪 Party to entrance** in the bar at the top of the map gathers them again.
+
 ## [1.21.1] - 2026-11-15
 
 ### Fixed

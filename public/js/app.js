@@ -185,6 +185,7 @@ function onMessage(msg) {
     case 'pinSet': pinSet = msg.on; renderMePop(); $('me').textContent = `Playing as ${me.name}` + (msg.on ? ' 🔑' : ''); toast(msg.on ? 'Your name is now protected by your PIN' : 'PIN removed'); break;
     case 'macros': macros = msg.macros; renderMacros(); break;
     case 'error': toast(msg.message); break;
+    case 'toast': toast(msg.text); break;
   }
   draw();
 }
@@ -335,7 +336,16 @@ function sceneChanged(refit) {
   else $('playerScene').textContent = s.name;
   if (s.bg) loadImg(s.bg.url);
   if (refit) fitView();
+  if (refit && !me.isDM) lookAtStart(s);
   draw();
+}
+// a player switched to a map: open on their own character if it's there, else on the map's entrance (1.22)
+function lookAtStart(s) {
+  const mine = Object.values(s.tokens || {}).find((t) => t.owner && sameName(t.owner, me.name) && !t.sum);
+  const e = s.entry, at = mine ? [mine.x + mine.size / 2, mine.y + mine.size / 2] : e ? [(e[0] + e[2] + 1) / 2, (e[1] + e[3] + 1) / 2] : null;
+  if (!at) return;
+  const r = canvas.getBoundingClientRect(); view.zoom = Math.max(view.zoom, Math.min(1.2, (Math.min(r.width, r.height) / CELL) / 14));
+  view.x = r.width / 2 - at[0] * CELL * view.zoom; view.y = r.height / 2 - at[1] * CELL * view.zoom;
 }
 // ---------- floors ----------
 // Floors of a building are maps in one group, each with a level. The DM switches between them with the
@@ -398,6 +408,7 @@ function renderSceneBar() {
 function fillMapSettings() {
   const s = sc();
   if (document.activeElement !== $('mapName')) $('mapName').value = s.name;
+  $('entryText').textContent = s.entry ? `squares ${s.entry[0] + 1},${s.entry[1] + 1} to ${s.entry[2] + 1},${s.entry[3] + 1}` : 'none: use the 🚪 Entrance tool'; $('entryClear').hidden = !s.entry;
   $('mapCols').value = s.cols; $('mapRows').value = s.rows; $('showGrid').checked = s.showGrid !== false; $('mapDiag').value = s.diag || '5'; $('mapWalls').value = s.wallStyle === 'rock' ? 'rock' : 'built';
   const pv = $('bgPreview');
   if (s.bg) { pv.style.backgroundImage = `url("${s.bg.url}")`; pv.textContent = ''; }
@@ -931,6 +942,8 @@ $('fogOn').onchange = () => {
   sendMsg({ type: 'fogSet', sceneId: editing, on });
   toast(on ? 'Fog on: players now see only what you reveal. Use Reveal room or the brushes.' : 'Fog off: players see the whole map');
 };
+$('partyHere').onclick = () => { const s = sc(); if (!s) return; if (!s.entry) return toast('Mark an entrance first: 🚪 Entrance in Build mode'); sendMsg({ type: 'partyHere', sceneId: editing }); };
+$('entryClear').onclick = () => sendMsg({ type: 'sceneUpdate', sceneId: editing, entry: null });
 $('fogRevealAll').onclick = () => { if (!fogOn(sc())) return toast('Tick "Fog of war" first'); sendMsg({ type: 'fogAll', sceneId: editing, reveal: true }); };
 $('fogCoverAll').onclick = () => { if (!fogOn(sc())) return toast('Tick "Fog of war" first'); sendMsg({ type: 'fogAll', sceneId: editing, reveal: false }); };
 
@@ -947,8 +960,18 @@ function drawWalls(s) {
   }
   ctx.restore();
 }
+// the map's entrance, for the DM: a dashed green box
+function drawEntry(s) {
+  if (!me.isDM || !s.entry) return;
+  const [x0, y0, x1, y1] = s.entry, z = view.zoom;
+  ctx.save(); ctx.lineWidth = 2.5 / z; ctx.setLineDash([8 / z, 5 / z]); ctx.strokeStyle = 'rgba(74,222,128,.9)'; ctx.fillStyle = 'rgba(74,222,128,.08)';
+  ctx.fillRect(x0 * CELL, y0 * CELL, (x1 - x0 + 1) * CELL, (y1 - y0 + 1) * CELL); ctx.strokeRect(x0 * CELL, y0 * CELL, (x1 - x0 + 1) * CELL, (y1 - y0 + 1) * CELL);
+  ctx.setLineDash([]); ctx.font = `600 ${Math.max(10, 12 / z)}px Inter, system-ui, sans-serif`; ctx.fillStyle = 'rgba(74,222,128,.95)'; ctx.textBaseline = 'bottom';
+  ctx.fillText('🚪 Entrance', x0 * CELL + 2 / z, y0 * CELL - 2 / z); ctx.restore();
+}
 function drawToolPreview(s) {
   drawWalls(s);
+  drawEntry(s);
   drawSelection(s);
   if (me.isDM && fogTool && hover) {
     const z = view.zoom;
@@ -980,7 +1003,7 @@ function drawToolPreview(s) {
   } else if (tool === 'prop' && inside(s, hover.x, hover.y)) {
     ctx.globalAlpha = 0.65; drawProp(ctx, { kind: propKind, x: hover.x, y: hover.y, rot: propRot }); ctx.globalAlpha = 1;
     ctx.strokeStyle = 'rgba(255,107,53,.8)'; ctx.strokeRect(hover.x * CELL, hover.y * CELL, CELL, CELL);
-  } else if (tool === 'rect' || tool === 'room' || tool === 'fill' || tool === 'token') {
+  } else if (tool === 'rect' || tool === 'room' || tool === 'fill' || tool === 'token' || tool === 'entry') {
     ctx.strokeStyle = '#ff6b35'; ctx.strokeRect(hover.x * CELL, hover.y * CELL, CELL, CELL);
   }
 }
@@ -2367,7 +2390,7 @@ canvas.addEventListener('pointerdown', (e) => {
     draw(); return;
   }
   if (tool === 'brush' || tool === 'erase') { stroke = newRecord(); lastCell = c; paintAt(s, c.x, c.y); }
-  else if (tool === 'rect' || tool === 'room') rectDrag = { a: c, b: c };
+  else if (tool === 'rect' || tool === 'room' || tool === 'entry') rectDrag = { a: c, b: c };
   else if (tool === 'fill') floodFill(s, c);
   else if (tool === 'prop') placeProp(s, c);
   else if (tool === 'token' && inside(s, c.x, c.y)) addToken(c.x, c.y);
@@ -2443,6 +2466,11 @@ canvas.addEventListener('pointerup', () => {
     if (t) setTimeout(() => offerStairs(s, t), 50);
   }
   if (stroke) { commit(stroke); stroke = null; }
+  if (rectDrag && s && tool === 'entry') { // the map's entrance: a dragged rectangle, or 3×3 around a click (1.22)
+    const { a, b } = rectDrag, one = a.x === b.x && a.y === b.y;
+    sendMsg({ type: 'sceneUpdate', sceneId: editing, entry: one ? [a.x - 1, a.y - 1, a.x + 1, a.y + 1] : [a.x, a.y, b.x, b.y] });
+    toast('Entrance marked: arriving characters land here'); rectDrag = null;
+  }
   if (rectDrag && s) { fillRect(s, rectDrag.a, rectDrag.b, tool === 'room'); rectDrag = null; }
   if (marquee) { area = normRect(marquee.a, marquee.b); marquee = null; showSelection(); }
   if (propDrag && s) {
@@ -2542,7 +2570,7 @@ canvas.addEventListener('wheel', (e) => {
 window.addEventListener('resize', resize);
 new ResizeObserver(resize).observe($('board'));
 
-const TOOL_KEYS = { v: 'select', b: 'brush', r: 'rect', m: 'room', g: 'fill', e: 'erase', p: 'prop', k: 'token' };
+const TOOL_KEYS = { v: 'select', b: 'brush', r: 'rect', m: 'room', g: 'fill', e: 'erase', p: 'prop', k: 'token', n: 'entry' };
 window.addEventListener('keydown', (e) => {
   const typing = /INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName);
   if (e.key === ' ' && !typing && (ruler || (drag && drag.start))) { // a corner in the path
@@ -3075,7 +3103,7 @@ async function runGenerator(replace) {
     const c2 = {}, s2 = {};
     o.tokens.forEach((t) => { c2[t.label] = (c2[t.label] || 0) + 1; });
     const num = o.tokens.map((t) => (c2[t.label] > 1 ? { ...t, label: `${t.label} ${(s2[t.label] = (s2[t.label] || 0) + 1)}` } : t));
-    const c = { tiles: o.tiles, props: o.props, tokens: fog ? num.map((t) => ({ ...t, hidden: false })) : num, labels: o.labels || [], fog: { on: fog, reveal: o.start ? [o.start] : [] }, wallStyle: o.wallStyle || out.wallStyle || 'built' };
+    const c = { tiles: o.tiles, props: o.props, tokens: fog ? num.map((t) => ({ ...t, hidden: false })) : num, labels: o.labels || [], fog: { on: fog, reveal: o.start ? [o.start] : [] }, entry: o.entry || o.start || null, wallStyle: o.wallStyle || out.wallStyle || 'built' };
     const m = mood && (o.mood || out.mood);
     if (m && m.vision) c.vision = { on: true, ambient: m.vision.ambient || 'dark', shared: true, explore: true };
     if (m && m.atmo) c.atmo = m.atmo;

@@ -14,7 +14,7 @@ const FX = require('../public/js/monsterfx.js');
 const SUMS = require('./summons');
 const ddb = require('./ddb');
 
-const VERSION = '1.21.1';
+const VERSION = '1.22.0';
 const PUBLIC = path.join(__dirname, '..', 'public');
 const VISION = require(path.join(PUBLIC, 'js', 'vision.js'));
 const CATALOG = JSON.parse(fs.readFileSync(path.join(PUBLIC, 'catalog.json'), 'utf8'));
@@ -1690,6 +1690,53 @@ function startServer({ port = 3000, host = '0.0.0.0', dataDir, dmKey, network = 
     return l;
   }
   // Load a whole map's contents at once (used by the map generators).
+  // ----- the map's entrance (1.22) -----
+  function entryRect(r, sc) {
+    if (!Array.isArray(r) || r.length < 4 || !r.slice(0, 4).every((v) => Number.isFinite(Number(v)))) return null;
+    const [a, b, c, d] = r.slice(0, 4).map((v) => Math.round(Number(v)));
+    const x0 = clamp(Math.min(a, c), 0, sc.cols - 1), y0 = clamp(Math.min(b, d), 0, sc.rows - 1), x1 = clamp(Math.max(a, c), 0, sc.cols - 1), y1 = clamp(Math.max(b, d), 0, sc.rows - 1);
+    return [x0, y0, x1, y1];
+  }
+  // a free spot for a token at the entrance: inside it if there's room, else the nearest free squares around its middle
+  function entrySpot(sc, size) {
+    const e = sc.entry; if (!e) return null;
+    const cx = Math.floor((e[0] + e[2]) / 2), cy = Math.floor((e[1] + e[3]) / 2);
+    return freeNear(sc, cx, cy, size || 1) || null;
+  }
+  // gather every player character at this map's entrance (from this map or any other), and bring in characters with no token yet
+  function partyTo(sc) {
+    if (!sc.entry) return 0;
+    let n = 0; const moved = new Set(), fromScenes = new Set();
+    const pcs = [];
+    for (const s2 of Object.values(state.scenes)) for (const t of Object.values(s2.tokens)) if (t.owner && t.owner !== '*' && t.ddb && !t.sum) pcs.push([s2, t]);
+    // one token for each player: the one on this map first, else the newest elsewhere
+    const byOwner = new Map();
+    for (const [s2, t] of pcs) { const k = t.owner.toLowerCase(), cur = byOwner.get(k); if (!cur || (s2 === sc && cur[0] !== sc)) byOwner.set(k, [s2, t]); }
+    for (const [s2, t] of byOwner.values()) {
+      if (s2 !== sc) {
+        delete s2.tokens[t.id]; toScene(s2.id, { type: 'removeToken', sceneId: s2.id, id: t.id }); fromScenes.add(s2);
+        if (s2.combat && s2.combat.entries.some((e) => e.id === t.id)) { s2.combat.entries = s2.combat.entries.filter((e) => e.id !== t.id); sortCombat(s2); sendCombat(s2); }
+        // its summons stay behind on the old map; they go when their spell ends
+      }
+      const b = s2 === sc ? { ...t } : null;
+      if (s2 === sc) delete sc.tokens[t.id]; // so its own square counts as free
+      const at = entrySpot(sc, t.size) || [clamp(t.x, 0, sc.cols - t.size), clamp(t.y, 0, sc.rows - t.size)];
+      t.x = at[0]; t.y = at[1]; sc.tokens[t.id] = t; tokenChanged(sc, t, b); moved.add(t.owner.toLowerCase()); n++;
+    }
+    // players at the table with a character from D&D Beyond but no token anywhere yet
+    for (const [name, ch] of Object.entries(state.characters || {})) {
+      if (moved.has(name.toLowerCase()) || !ch || !ch.link || Object.keys(sc.tokens).length >= 500) continue;
+      const at = entrySpot(sc, 1); if (!at) continue;
+      const owner = (clients().find((c) => !c.user.isDM && sameName(c.user.name, name)) || {}).user; if (!owner) continue; // only players at the table now
+      const id = uid();
+      sc.tokens[id] = { id, ...tokenFields({ color: '#2563eb', size: 1, label: ch.name.split(' ')[0].slice(0, 24), owner: owner.name, img: ch.img || null, maxHp: ch.maxHp, hp: ch.hp, initBonus: ch.init, darkvision: ch.darkvision, ac: ch.ac, speed: ch.speed, pp: ch.pp, ddb: ch.link, x: at[0], y: at[1] }, sc) };
+      tokenChanged(sc, sc.tokens[id], null); n++;
+    }
+    for (const s2 of fromScenes) if (visionOn(s2)) scheduleVision(s2);
+    if (visionOn(sc)) scheduleVision(sc);
+    refreshViews();
+    return n;
+  }
   function fillScene(sc, m) {
     sc.tiles = {}; sc.props = {}; sc.tokens = {}; sc.templates = {}; sc.labels = {};
     if (m.tiles && typeof m.tiles === 'object') {
@@ -1720,6 +1767,8 @@ function startServer({ port = 3000, host = '0.0.0.0', dataDir, dmKey, network = 
     if (m.atmo && typeof m.atmo === 'object') sc.atmo = atmoFields(m.atmo); // a regenerated map keeps its weather and sound
     if (WALL_STYLES.includes(m.wallStyle)) sc.wallStyle = m.wallStyle; // how walls are drawn: built stone, or natural rock (caves)
     if (Array.isArray(m.labels)) for (const l of m.labels.slice(0, 300)) { const lb = labelFields(l, sc); if (lb) { lb.id = uid(); sc.labels[lb.id] = lb; } }
+    // the entrance (1.22): [x0, y0, x1, y1], where arriving tokens land and players' views open
+    const en = entryRect(m.entry, sc); if (en) sc.entry = en; else delete sc.entry;
     // fog: { on, reveal: [[x0, y0, x1, y1], ...] } — e.g. a generated dungeon with only the entrance showing
     sc.fog = { on: !!(m.fog && m.fog.on), data: '' };
     fogArrays.delete(sc.id);
@@ -2375,6 +2424,7 @@ function startServer({ port = 3000, host = '0.0.0.0', dataDir, dmKey, network = 
         if (msg.diag != null && DIAGONALS.includes(msg.diag)) patch.diag = msg.diag;
         if (WALL_STYLES.includes(msg.wallStyle)) patch.wallStyle = msg.wallStyle;
         if (msg.floor != null && sc.group) patch.floor = str(msg.floor, 30).trim() || sc.floor;
+        if (msg.entry !== undefined) patch.entry = msg.entry === null ? null : entryRect(msg.entry, sc) || sc.entry || null; // the DM marks the entrance (null takes it away)
         if (msg.vision && typeof msg.vision === 'object') {
           const v = { on: false, ambient: 'bright', shared: true, explore: true, ...(sc.vision || {}) };
           if ('on' in msg.vision) v.on = !!msg.vision.on;
@@ -2389,7 +2439,8 @@ function startServer({ port = 3000, host = '0.0.0.0', dataDir, dmKey, network = 
             ? { url: msg.bg.url } : null;
         }
         const oldFog = fogArr(sc), oldCols = sc.cols, oldRows = sc.rows;
-        Object.assign(sc, patch);
+        Object.assign(sc, patch); if (sc.entry === null) delete sc.entry;
+        if (sc.entry && (patch.cols || patch.rows)) sc.entry = entryRect(sc.entry, sc);
         if (sc.cols !== oldCols || sc.rows !== oldRows) { // keep revealed areas where they were
           const nf = new Uint8Array(sc.cols * sc.rows);
           for (let y = 0; y < Math.min(oldRows, sc.rows); y++) for (let x = 0; x < Math.min(oldCols, sc.cols); x++) nf[y * sc.cols + x] = oldFog[y * oldCols + x];
@@ -2463,7 +2514,22 @@ function startServer({ port = 3000, host = '0.0.0.0', dataDir, dmKey, network = 
       case 'sceneActivate':
         if (!u.isDM || !sc) return;
         activate(sc.id); save();
+        // a map with an entrance: offer to bring the party there, if any of them are somewhere else (1.22)
+        if (sc.entry && Object.values(state.scenes).some((s2) => s2 !== sc && !(sc.group && s2.group === sc.group) && Object.values(s2.tokens).some((t) => t.owner && t.ddb && !t.sum))) { // not between floors of one building
+          const sid = sc.id;
+          ask('dm', { title: 'Move the party here?', text: `Bring every player character to the entrance of ${sc.name}?`, buttons: [{ label: '🚪 Move party here', value: 'yes' }, { label: 'Not now', value: '' }] }, (v) => {
+            const s2 = state.scenes[sid]; if (v !== 'yes' || !s2) return;
+            const n = partyTo(s2); post({ kind: 'chat', who: 'DM', text: `🚪 The party arrives at ${s2.name}`, time: Date.now(), cast: true }); if (n) save();
+          }, 60000);
+        }
         break;
+      case 'partyHere': { // the DM gathers the party at this map's entrance
+        if (!u.isDM || !sc) return;
+        if (!sc.entry) return send(ws, { type: 'error', message: 'This map has no entrance yet: mark one with 🚪 Entrance in Build mode' });
+        const n = partyTo(sc);
+        send(ws, { type: 'toast', text: n ? `${n} character${n === 1 ? '' : 's'} moved to the entrance` : 'No player characters to move' }); if (n) save();
+        break;
+      }
 
       // ----- dice -----
       case 'roll':
@@ -2963,7 +3029,8 @@ function startServer({ port = 3000, host = '0.0.0.0', dataDir, dmKey, network = 
           tokenChanged(sc, t, before);
         } else {
           if (Object.keys(sc.tokens).length >= 500) return;
-          const want = [clamp(int(msg.x, 1), 0, sc.cols - 1), clamp(int(msg.y, 1), 0, sc.rows - 1)], used = new Set(Object.values(sc.tokens).map((x) => x.x + ',' + x.y));
+          const ent = sc.entry && entrySpot(sc, 1); // the map's entrance first (1.22), else where the player is looking
+          const want = ent || [clamp(int(msg.x, 1), 0, sc.cols - 1), clamp(int(msg.y, 1), 0, sc.rows - 1)], used = new Set(Object.values(sc.tokens).map((x) => x.x + ',' + x.y));
           let spot = want;
           for (let r = 0; r < 12 && used.has(spot[0] + ',' + spot[1]); r++) for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) { const x = want[0] + dx, y = want[1] + dy; if (inside(x, y) && !used.has(x + ',' + y) && used.has(spot[0] + ',' + spot[1])) spot = [x, y]; }
           const id = uid();

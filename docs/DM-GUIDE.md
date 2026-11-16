@@ -63,6 +63,16 @@ A tower, a manor, a dungeon with levels: click **＋ Floor above** or **＋ Cell
 - **Moving any token:** select it and pick another floor in the **Floor** box.
 - **What players see:** each player sees the floor their character is on, so the party can split up. Players without a character in the building see the floor you showed with **Show to players**. Other floors of that building are marked **IN PLAY**: changes there show to players on them straight away.
 
+## The entrance
+
+Each map can have an **entrance**: the squares where the party arrives. It's shown to you as a dashed green box marked **🚪 Entrance**; players never see the box.
+
+- **Generated maps** get one by themselves: the dungeon's first room, the cave mouth, the town gate, the ship's gangplank and so on.
+- **Your own maps:** in **Build map**, pick the **🚪 Entrance** tool (key **N**) and drag a rectangle, or click once for a 3×3 square. Drawing a new one replaces the old. **✕ Remove** next to **Entrance** in the map settings takes it off.
+- **Players' tokens land there:** when a player clicks **📍 Put my token on the map**, their token goes to the entrance (the nearest free square), not to wherever they were looking.
+- **Players' views open there:** when you switch players to a map, their screen opens on the entrance (or on their own character, if it's already on that map).
+- **Moving the party:** when you click **Show to players** on a map with an entrance and the party is on another map, a card asks **Move the party here?**. **🚪 Move party here** brings every player character to the entrance and takes them off the old map; their summons stay behind. Players who are at the table with a character but no token yet get one there too. You can do it any time with **🚪 Party to entrance** in the bar at the top of the map. Switching between floors of one building doesn't ask: characters take the stairs.
+
 ## Fog of war
 
 The bar at the top of the map controls fog for the map you're on.
