@@ -6,6 +6,7 @@ Feature requests sent to the Tabletop Telegram bot (`/request`). The bot keeps t
 | --- | --- | --- | --- |
 | [#9](https://github.com/CPSDomain/VTT/issues/9) | Add another collapsible tab in My Character window to show Active Effects. currently, the  | 1 | 💡 Requested |
 | [#10](https://github.com/CPSDomain/VTT/issues/10) | When casting a spell on another target, make it obvious in the targeting interface. curren | 1 | 💡 Requested |
+| [#11](https://github.com/CPSDomain/VTT/issues/11) | In the requested Active Effects, add a button to stop concentrating on a concentration spe | 1 | 💡 Requested |
 | [#1](https://github.com/CPSDomain/VTT/issues/1) | Cone spells always originate from the caster | 1 | ✅ Done |
 | [#2](https://github.com/CPSDomain/VTT/issues/2) | Healer needs a view for all players and DM would need to see all player HP as well | 1 | ✅ Done |
 | [#3](https://github.com/CPSDomain/VTT/issues/3) | Option to hide hp bar of npcs | 1 | ✅ Done |
