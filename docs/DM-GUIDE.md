@@ -167,7 +167,7 @@ Made the map somewhere else? Click **Build map**, then **📥 Import map…** un
 
 ![An imported Universal VTT map in Build mode: walls in blue, the door in orange, one room revealed](images/import-walls.jpg)
 
-**Images:** Tabletop looks for grid lines and sizes the map so the squares match, and tells you what it found. If it couldn't find a grid (or got it wrong), open **Background image**, type how many pixels one square is in the image and press **Fit grid**. Exporting from Canvas of Kings with the square grid showing gives the best result. Hex grids aren't supported yet.
+**Images:** before the map is made, a **Grid for this map** box shows the picture with red lines where Tabletop's squares will go. If the file name gives the size (`Tavern_30x20.jpg`), it's filled in already; otherwise Tabletop looks for grid lines, or guesses. If you know the map's size, type the **squares across and down**, or how many **pixels** one square is, and watch the red lines move. **Use this grid** makes the map. You can still change it later: open **Background image**, type the pixels per square and press **Fit grid**. Exporting from Canvas of Kings with the square grid showing gives the best result. Hex grids aren't supported yet.
 
 **MapTool:** a campaign with several maps becomes several Tabletop maps. MapTool maps have no edges, so each map is cut to what's on it (up to 200 × 200 squares). Fog of war comes across as it was (what had been revealed stays revealed), vision blocking becomes walls for line of sight and Reveal room, token lights and darkvision come across, and drawings are painted into the map. A campaign file brings its own light sources; a single `.rpmap` doesn't carry them, so lit tokens get a torch. Not imported: macros, token properties other than HP, GM-layer drawings and spell templates. Hex grids come in as squares. If something's missing or out of place, keep the MapTool file: it helps to improve the import.
 
@@ -198,7 +198,7 @@ In **Build map** mode the tools are on the left; one square is 5 ft. The line un
 
 A quick dungeon by hand: the Room tool for each chamber, Rectangle with cobblestone for the corridor, Paint with stone over the walls where the corridor meets them, then a Door prop in each gap.
 
-**Using an existing battle map:** under Background image, click **Upload image** or drag a PNG or JPG onto the map. The grid sizes itself if the image uses a common square size (70, 100, 140 px…). If the lines don't match, type the image's pixels per square and click **Fit grid**. You can paint and place props on top.
+**Using an existing battle map:** under Background image, click **Upload image** or drag a PNG or JPG onto the map. The same **Grid for this map** box asks for the size first (squares across and down, or pixels per square). To change it later, type the image's pixels per square and click **Fit grid**. You can paint and place props on top.
 
 Ctrl+Z undoes, Ctrl+Y redoes. Pan with right-drag or Space+drag, zoom with the mouse wheel, press Home to fit the map.
 

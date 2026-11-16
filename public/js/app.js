@@ -2706,12 +2706,56 @@ async function uploadBg(file) {
     const { url } = await res.json();
     const img = loadImg(url);
     await (img.complete ? Promise.resolve() : new Promise((r) => { img.addEventListener('load', r, { once: true }); img.addEventListener('error', r, { once: true }); }));
-    const px = detectGrid(img) || guessSquare(img);
-    $('pxPerSq').value = px;
-    updateScene({ bg: { url }, cols: Math.round(img.naturalWidth / px), rows: Math.round(img.naturalHeight / px) });
-    toast(`Map uploaded (${img.naturalWidth}×${img.naturalHeight}px). Grid set to ${px}px squares; change it and press Fit grid if it doesn't line up.`, 6000);
+    const gr = await askGrid(img, file.name); if (!gr) return toast('Upload cancelled');
+    $('pxPerSq').value = gr.px;
+    updateScene({ bg: { url }, cols: gr.cols, rows: gr.rows });
+    toast(`Map image set: ${gr.cols} × ${gr.rows} squares.`, 5000);
     setTimeout(fitView, 150);
   } catch (err) { toast('Upload failed: ' + err.message); }
+}
+// ---------- the grid of an imported image (#8) ----------
+// Map files often say their size in the name: "Tavern_30x20.jpg", "crypt 22 x 30 gridless.png"
+function gridFromName(name, img) {
+  const m = /(?:^|[^\d])(\d{1,3})\s*[x×]\s*(\d{1,3})(?:[^\d]|$)/i.exec(String(name || '')); if (!m) return null;
+  let a = +m[1], b = +m[2]; if (a < 5 || b < 5 || a > 200 || b > 200) return null;
+  const r = img.naturalWidth / img.naturalHeight; if (Math.abs(b / a - r) < Math.abs(a / b - r)) [a, b] = [b, a]; // across first, whichever way round it was written
+  return { cols: a, rows: b };
+}
+// ask the DM how big the squares are, before the map is made: a preview with the grid drawn over the picture
+function askGrid(img, name) {
+  return new Promise((resolve) => {
+    const w = img.naturalWidth, h = img.naturalHeight, fromName = gridFromName(name, img), found = fromName ? 0 : detectGrid(img);
+    let px = fromName ? w / fromName.cols : found || guessSquare(img);
+    $('gmFrom').textContent = fromName ? `From the file name: ${fromName.cols} × ${fromName.rows} squares.` : found ? `Tabletop found grid lines ${found} pixels apart.` : `No grid found in the picture: this is a guess (${px} pixel squares).`;
+    const cv = $('gmPrev'), k = Math.min(cv.width / w, cv.height / h);
+    const draw = () => {
+      const g = cv.getContext('2d'), cols = Math.max(1, Math.round(w / px)), rows = Math.max(1, Math.round(h / px)), dw = w * k, dh = h * k, ox = (cv.width - dw) / 2, oy = (cv.height - dh) / 2;
+      g.clearRect(0, 0, cv.width, cv.height); g.drawImage(img, ox, oy, dw, dh);
+      g.strokeStyle = 'rgba(239,68,68,.75)'; g.lineWidth = 1; g.beginPath();
+      for (let i = 0; i <= cols; i++) { const x = ox + (i * dw) / cols; g.moveTo(x, oy); g.lineTo(x, oy + dh); }
+      for (let j = 0; j <= rows; j++) { const y = oy + (j * dh) / rows; g.moveTo(ox, y); g.lineTo(ox + dw, y); }
+      g.stroke();
+      $('gmSize').textContent = `${w} × ${h} px image`;
+    };
+    const fill = (from) => {
+      if (from !== 'px') $('gmPx').value = Math.round(px * 10) / 10;
+      if (from !== 'cols') $('gmCols').value = Math.round(w / px);
+      if (from !== 'rows') $('gmRows').value = Math.round(h / px);
+      draw();
+    };
+    $('gmCols').oninput = () => { const n = +$('gmCols').value; if (n >= 1) { px = w / n; fill('cols'); } };
+    $('gmRows').oninput = () => { const n = +$('gmRows').value; if (n >= 1) { px = h / n; fill('rows'); } };
+    $('gmPx').oninput = () => { const n = +$('gmPx').value; if (n >= 5) { px = n; fill('px'); } };
+    if (fromName) { $('gmCols').value = fromName.cols; $('gmRows').value = fromName.rows; $('gmPx').value = Math.round(px * 10) / 10; draw(); } else fill();
+    const done = (ok) => {
+      $('gridModal').hidden = true; $('gmOk').onclick = $('gmCancel').onclick = $('gmClose').onclick = null;
+      if (!ok) return resolve(null);
+      const cols = Math.max(5, Math.min(200, +$('gmCols').value || Math.round(w / px))), rows = Math.max(5, Math.min(200, +$('gmRows').value || Math.round(h / px)));
+      resolve({ cols, rows, px: Math.round(w / cols) });
+    };
+    $('gmOk').onclick = () => done(true); $('gmCancel').onclick = () => done(false); $('gmClose').onclick = () => done(false);
+    $('gridModal').hidden = false; setTimeout(() => $('gmCols').focus(), 0);
+  });
 }
 // Most battle maps use 70, 100, 128, 140, 150 or 200 px squares. Pick the one that gives whole squares.
 function guessSquare(img) {
@@ -2937,14 +2981,14 @@ async function importImage(file) {
   const img = loadImg(url);
   await (img.complete && img.naturalWidth ? Promise.resolve() : new Promise((res) => { img.addEventListener('load', res, { once: true }); img.addEventListener('error', res, { once: true }); }));
   if (!img.naturalWidth) return toast('Couldn\'t open that image');
-  const found = detectGrid(img), px = found || guessSquare(img);
-  const cols = Math.max(5, Math.min(200, Math.round(img.naturalWidth / px))), rows = Math.max(5, Math.min(200, Math.round(img.naturalHeight / px)));
-  $('pxPerSq').value = px;
+  toast('', 1);
+  const gr = await askGrid(img, file.name); if (!gr) return toast('Import cancelled');
+  const { cols, rows } = gr;
+  $('pxPerSq').value = gr.px;
   const name = niceName(file.name);
   pendingNewScene = true;
   sendMsg({ type: 'sceneCreate', name, cols, rows, content: { bg: { url } } });
-  toast(found ? `Imported "${name}": found a grid of ${px} px squares, so ${cols} × ${rows} squares.`
-    : `Imported "${name}" as ${cols} × ${rows} squares of ${px} px. If the grid doesn't line up, go to Build map → Background image, type the pixels per square and press Fit grid.`, 8000);
+  toast(`Imported "${name}": ${cols} × ${rows} squares.`, 5000);
 }
 // Find the grid in a map image: grid lines repeat at a fixed spacing, so look for the spacing at which
 // the picture's edges line up best with themselves. Returns pixels per square, or 0 if there's no clear grid.

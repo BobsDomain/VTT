@@ -2,6 +2,17 @@
 
 All notable changes to Tabletop. Newest first. Each version's section is used as the release notes on GitHub.
 
+## [1.22.1] - 2026-11-16
+
+### Added
+- **Set the grid when you import a map image (#8):**
+  - **Before the map is made:** a box shows the picture with red lines where the squares will go.
+  - **Size from the file name:** names like `Tavern_30x20.jpg` fill it in for you; otherwise Tabletop looks for the grid lines or guesses.
+  - **Type what you know:** squares across and down, or pixels per square, and the lines move as you type. It works for **Import map** and for a map's **Upload image** alike.
+
+### Fixed
+- **The bar above the map wraps** on narrower screens instead of running under the side panel.
+
 ## [1.22.0] - 2026-11-16
 
 Every map can have an entrance, where the party arrives.

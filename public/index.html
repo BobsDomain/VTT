@@ -77,9 +77,9 @@
   #status { position:absolute; top:10px; left:10px; background:rgba(0,0,0,.65); padding:5px 11px; border-radius:20px; font-size:12px; pointer-events:none; }
   #zoomCtl { position:absolute; right:10px; bottom:10px; display:flex; gap:4px; }
   #zoomCtl button { background:rgba(20,20,20,.85); width:32px; padding:5px 0; }
-  #fogBar { position:absolute; top:10px; left:50%; transform:translateX(-50%); display:flex; align-items:center; gap:4px; background:rgba(22,22,22,.92); border:1px solid var(--line); border-radius:10px; padding:4px 6px; box-shadow:0 6px 20px rgba(0,0,0,.4); }
+  #fogBar { position:absolute; top:10px; left:10px; right:10px; width:fit-content; margin:0 auto; display:flex; align-items:center; gap:4px; background:rgba(22,22,22,.92); border:1px solid var(--line); border-radius:10px; padding:4px 6px; flex-wrap:wrap; justify-content:center; row-gap:4px; box-shadow:0 6px 20px rgba(0,0,0,.4); }
   body.dm #fogBar { display:flex !important; }
-  #fogBar button, #fogBar select { padding:4px 9px; font-size:12px; background:transparent; }
+  #fogBar button, #fogBar select { padding:4px 9px; font-size:12px; background:transparent; white-space:nowrap; }
   #fogBar select { background:var(--panel2); padding:3px 4px; }
   #fogBar .fogbtn.on { background:var(--accent); border-color:var(--accent); color:#fff; }
   .fogswitch { display:flex; align-items:center; gap:6px; font-size:12px; font-weight:600; padding:0 6px; cursor:pointer; white-space:nowrap; }
@@ -263,6 +263,7 @@
   #gate input { width:100%; }
   #join { position:fixed; inset:0; background:rgba(0,0,0,.82); display:flex; align-items:center; justify-content:center; z-index:20; }
   #join[hidden] { display:none; }
+  #gmPrev { width:100%; max-height:380px; background:#0b0b0b; border-radius:6px; display:block; margin-bottom:8px; }
   #join form { background:var(--panel); padding:24px; border-radius:10px; width:320px; border-top:3px solid var(--accent); }
   #eSummon[hidden] { display:none!important; }
   #partyList .pm { display:grid; grid-template-columns:22px 1fr auto; gap:2px 8px; align-items:center; padding:4px 6px; border-radius:6px; cursor:pointer; }
@@ -977,6 +978,19 @@
   <div class="dialog">
     <div class="dhead"><h2 style="margin:0" id="cmName"></h2><div class="spacer"></div><button class="close" data-close>✕</button></div>
     <div id="cmBody" class="chs"></div>
+  </div>
+</div>
+<div class="modal" id="gridModal" hidden>
+  <div class="dialog">
+    <div class="dhead"><h2 style="margin:0">Grid for this map</h2><div class="spacer"></div><button class="close" id="gmClose">✕</button></div>
+    <div class="hbody">
+      <canvas id="gmPrev" width="600" height="380"></canvas>
+      <div class="hint" id="gmFrom"></div>
+      <div class="row"><span class="fixed hint" style="margin:0">Squares</span><input id="gmCols" type="number" min="5" max="200" style="max-width:70px" title="Squares across"><span class="fixed hint" style="margin:0">across ×</span><input id="gmRows" type="number" min="5" max="200" style="max-width:70px" title="Squares down"><span class="fixed hint" style="margin:0">down</span></div>
+      <div class="row"><span class="fixed hint" style="margin:0">or one square is</span><input id="gmPx" type="number" min="10" max="500" step="0.1" style="max-width:80px" title="Pixels per square in the image"><span class="fixed hint" style="margin:0">pixels</span><span class="hint" id="gmSize" style="margin:0"></span></div>
+      <div class="hint">If you know the map's size (it's often in the file name, like 30x20), type it here. The red lines show where Tabletop's squares will be.</div>
+      <div class="row" style="margin-top:10px"><button id="gmCancel">Cancel</button><button id="gmOk" class="primary">Use this grid</button></div>
+    </div>
   </div>
 </div>
 <div class="modal" id="handoutModal" hidden>
