@@ -277,6 +277,7 @@ function enrich(sp, level) {
   const SUM = SUMS.SUMMONS[key];
   if (SUM) { sp.summon = true; if (SUM.forms.length > 1 && !(sp.cond && sp.cond.options)) sp.cond = { ...(sp.cond || {}), options: SUM.forms.map((f) => ({ name: f.name })), add: (sp.cond && sp.cond.add) || [], rounds: roundsOf(sp.duration) }; }
   if (SUMS.TELEPORTS[key]) sp.move = 'teleport'; else if (SUMS.PUSHES[key]) sp.move = 'push';
+  if (ZONES[key]) { sp.zone = true; sp.zoneHitsNow = !!ZONES[key].appear; } // an area that stays on the map (1.18)
   // darts, rays or beams: each one picks its own target
   let m = /creates? (\w+) (?:glowing )?(dart|ray|beam)s?/i.exec(d) || /\b(two|three|four|five|six) (?:[a-z]+ )?(dart|ray|beam)s\b/i.exec(d);
   let n = m ? num(m[1]) : 0, word = m ? m[2].toLowerCase() : '';
@@ -314,34 +315,36 @@ function enrichCharacter(ch) {
   if (!ch.hitDice) { const HD = { Barbarian: 12, Fighter: 10, Paladin: 10, Ranger: 10, Sorcerer: 6, Wizard: 6 }; ch.hitDice = [...String(ch.classes || '').matchAll(/(\w+)(?: \([^)]*\))? (\d+)/g)].map((m) => ({ die: HD[m[1]] || 8, max: +m[2], used: 0, cls: m[1] })); }
   // Weapon Mastery is a 2024 rule: off since 1.21 (2014 rules)
   ch.mastery = false;
-  ch.featureInfo = ch.features.map((n) => { const f = FE.FEATURES.find((x) => x.name === n); return { name: n, options: (f.options || []).map((o) => o.name), note: f.note || '', cost: f.cost || '', save: f.save || '', dc: FE.dcFor(ch, f.dc) }; });
+  ch.featureInfo = ch.features.map((n) => { const f = FE.FEATURES.find((x) => x.name === n); return { name: n, options: (f.options || []).map((o) => o.name), note: f.note || '', cost: f.cost || '', save: f.save || '', dc: FE.dcFor(ch, f.dc), contest: !!f.contest }; });
   return ch;
 }
 
 // areas that keep working after the spell is cast (1.18): when a creature enters, starts or ends its turn there
 // (2014 timing since 1.21: most of them on entering or starting a turn there).
+// 1.23: appear: true when the spell also hits what's in the area the moment it's cast ("When the wall appears…");
+// moves: how the caster may move the area afterwards: 'action' (Moonbeam), 'bonus' (Flaming Sphere), or it stays put
 //  'spell' means the spell's own save, damage and conditions; follow: the area moves with the caster (Spirit Guardians);
 //  others: only the caster's foes; inside: conditions while in the area (Silence: deafened); move: damage per 5 feet
 //  moved in it (Spike Growth); once a turn for each creature
 const ZONES = {
   'spirit guardians': { follow: 15, others: true, enter: 'spell', start: 'spell' },
-  "yolande's regal presence": { follow: 10, others: true, enter: 'spell', end: 'spell' },
-  'moonbeam': { enter: 'spell', start: 'spell' },
+  "yolande's regal presence": { follow: 10, others: true, enter: 'spell', end: 'spell', appear: true },
+  'moonbeam': { enter: 'spell', start: 'spell', moves: 'action' },
   'cloudkill': { enter: 'spell', start: 'spell' },
   'cloud of daggers': { enter: 'spell', start: 'spell' },
-  'incendiary cloud': { enter: 'spell', end: 'spell' },
-  'insect plague': { enter: 'spell', end: 'spell' },
+  'incendiary cloud': { enter: 'spell', end: 'spell', appear: true },
+  'insect plague': { enter: 'spell', end: 'spell', appear: true },
   'blade barrier': { enter: 'spell', start: 'spell' },
-  'wall of thorns': { enter: 'spell', start: 'spell' },
-  'wall of fire': { enter: 'nosave', end: 'nosave' },
-  "jallarzi's storm of radiance": { enter: 'spell', end: 'spell', inside: ['blinded', 'deafened'] },
+  'wall of thorns': { enter: 'spell', start: 'spell', appear: true },
+  'wall of fire': { enter: 'nosave', end: 'nosave', appear: true },
+  "jallarzi's storm of radiance": { enter: 'spell', end: 'spell', inside: ['blinded', 'deafened'], appear: true },
   "evard's black tentacles": { enter: 'spell', start: 'spell' },
   'web': { enter: 'spell', start: 'spell' },
-  'grease': { enter: 'spell', end: 'spell' },
+  'grease': { enter: 'spell', end: 'spell', appear: true },
   'sleet storm': { enter: 'spell', start: 'spell' },
   'stinking cloud': { start: 'spell' },
   'guardian of faith': { others: true, enter: 'spell' },
-  'flaming sphere': { end: 'spell' },
+  'flaming sphere': { end: 'spell', moves: 'bonus' },
   'hunger of hadar': { inside: ['blinded'], start: { dmg: [{ dice: '2d6', type: 'cold' }] }, end: { save: 'DEX', dmg: [{ dice: '2d6', type: 'acid' }] } },
   'spike growth': { move: { dice: '2d4', type: 'piercing' } },
   'silence': { inside: ['deafened'] },

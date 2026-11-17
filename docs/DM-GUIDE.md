@@ -240,6 +240,8 @@ Click **⚔ Encounter builder…** under Add tokens.
 3. **Place on the map** puts the monsters near the middle of your view, on free squares, numbered (Goblin 1, Goblin 2…), with average or rolled hit points and their initiative bonus. **Add hidden** keeps them out of sight until you reveal them.
 4. **Save** keeps the encounter (give it a name) to place again later from **Saved encounters…**.
 
+**Quick buttons:** select a monster on the map and its attacks and actions appear under **📖 Stat block** in the token panel: **🎯 Scimitar** uses it on a target (to hit, damage, saves and conditions done for you), and the **+4** and **1d6+2** buttons roll to hit and damage on their own (only you see them).
+
 **Stat blocks:** select a monster on the map and click **📖 Stat block**. Attack bonuses, damage, hit dice and ability scores are buttons that roll; your rolls stay private unless you tick **Show rolls to the players**. Library tokens named like an SRD monster ("Goblin 3") have one too.
 
 **The monsters:** the 334 monsters of the 2014 rules (SRD 5.1), used under the Creative Commons Attribution 4.0 licence. Their spells (Misty Step, Counterspell) are buttons too. Maps made before 1.21 with 2024 monsters on them keep their stat blocks.
@@ -262,11 +264,11 @@ Click **⚔ Encounter builder…** under Add tokens.
 
 **Joining a fight already going:** add a token with **+ Selected** or **⚔ Add to initiative** and monsters roll their initiative straight away (secretly). A player gets a card asking them to roll.
 
-**Conditions:** click the icons under Conditions to toggle them; they appear on the token and in the initiative list.
+**Conditions:** click **Conditions** in the token panel to unfold the icons, and click one to toggle it. The ones on the token are listed next to the heading even when it's folded. They appear on the token, in the initiative list, and when anyone hovers over the token.
 
 **Automated combat (1.18):** aim attacks and spells at tokens and Tabletop rolls to hit or the save, applies damage, healing and conditions, and keeps your rolls secret:
 - **Monster attacks:** **🎯 Use on…** in a stat block. Multiattack runs every attack. Recharge, daily uses and legendary actions are tracked; **🌅 New day** under the initiative list gives daily uses back.
-- **Spell areas stay on the map:** Spirit Guardians, Moonbeam, Spike Growth, Hunger of Hadar and the rest hit creatures that enter, or start or end a turn inside, once per turn.
+- **Spell areas stay on the map:** Spirit Guardians, Moonbeam, Spike Growth, Hunger of Hadar and the rest hit creatures that enter, or start or end a turn inside, once per turn. Most don't hit anything the moment they appear (Wall of Fire, Grease and a few others do, as their spells say). Players can't move an area once it's cast, except Moonbeam (their action) and Flaming Sphere (their bonus action), once on their turn. You can always drag one, for a misplaced cast.
 - **Actions:** the token panel has **🛡 Dodge**, **🏃 Disengage**, **🤝 Help**, **🫥 Hide**, **💨 Dash** and **⏳ Ready**. You get an alert when a creature in combat leaves a foe's reach without Disengaging (an opportunity attack).
 - **Optional rules:** **Under water** and **Flanking** are tick boxes under the initiative list.
 - **Surprise:** tick **Surprised** in the token panel before the fight. The creature rolls initiative as normal, but on its first turn it can't move or act (Tabletop says so when the turn comes), and it has no reaction until that turn ends.
@@ -319,9 +321,9 @@ The bar on the left of the map in Play mode has the tools you and the players us
 | --- | --- | --- |
 | Move | V | Drag tokens. Dragging a token shows how far it has moved; press `Space` mid-drag to add a corner |
 | Ruler | R | Drag to measure in feet; `Space` adds a corner. Everyone sees it while you measure |
-| Spell | T | Spell templates: cone, sphere, cube, line, cylinder (see below) |
-| Door | D | Click a door to open or close it (see Lighting and vision) |
-| Ping | P | Click to flash a spot for everyone. `Shift`+click also moves everyone's view there. `Alt`+click pings with any tool |
+| Spell | T | Spell templates: cone, sphere, cube, line, cylinder, circle (see below) |
+| Door | D | Click a door to open or close it (see Lighting and vision). With the Move tool, you can also **double-click** a door or chest to open or close it, and a torch, brazier, candle or lamp to light it or put it out |
+| Ping | P | Click to flash a spot for everyone. `Shift`+click also moves everyone's view there. `Alt`+click pings with any tool. Anyone who isn't looking there gets a dotted line towards it and a **📍 View ping** button |
 | Label | L | Text on the map, and notes only you can see (see below) |
 
 **Diagonals:** by default every square counts 5 ft, diagonals too (the 5e rule). For the 5 / 10 / 5 variant, set **Ruler diagonals** in Build map → map settings. It's per map.
@@ -340,7 +342,7 @@ Everyone rolls in the right-hand panel: the die buttons, or type any roll such a
 - **Who sees what:** a player's roll rolls on everyone's screen. A player's private roll (**Roll privately**) shows only on their screen and yours. **Your rolls are yours alone:** nobody else sees them, on screen or in the log. To show one to the table, tick **Show this roll to the players** first.
 - **My dice…** under the dice buttons: pick a set (Ivory, Obsidian, Ruby, Gold, Frost, Ember and more) or **Use a picture…** of your own; everyone sees your dice in your colours. Untick **Show dice rolling on my screen** to keep only the log.
 
-Each player can save **quick rolls** (e.g. "Longsword hit" `1d20+5`), copying bonuses from D&D Beyond once. Shift-click rolls with advantage, Alt-click with disadvantage. Natural 20s show green, natural 1s red.
+Each player can save **quick rolls** (e.g. "Longsword hit" `1d20+5`), copying bonuses from D&D Beyond once. Players who bring in their character don't see this panel: My character has all their rolls. Shift-click rolls with advantage, Alt-click with disadvantage. Natural 20s show green, natural 1s red.
 
 ## Sound and story
 

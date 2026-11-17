@@ -144,6 +144,7 @@ function onMessage(msg) {
     case 'labelRemove': if (s && s.labels) { delete s.labels[msg.id]; if (labelEdit && labelEdit.id === msg.id) closeLabelEditor(); } break;
     case 'ping':
       pings.push({ sceneId: msg.sceneId, x: msg.x, y: msg.y, who: msg.who, dm: msg.dm, t0: performance.now() });
+      if (!msg.focus && msg.sceneId === editing && !(sameName(msg.who, me.name) && !!msg.dm === !!me.isDM)) offscreenPing(msg);
       if (msg.focus && msg.sceneId === editing) { centreOnSquare(msg.x, msg.y, true); if (!me.isDM) toast('The DM wants you to look here', 2500); }
       break;
     case 'measure': {
@@ -1315,6 +1316,27 @@ $('encLoad').onchange = () => {
   enc = { id: e.id, picked: e.monsters.map((m) => ({ ...m })) }; $('encName').value = e.name;
   $('encSize').value = e.party.size; $('encLevel').value = e.party.level; renderEncPicked();
 };
+// the DM's quick buttons for a monster in the selected token panel (#19): each attack or action, used on a target
+// (to hit, damage, saves and conditions done for you), and its to-hit and damage as plain rolls
+function renderQuick(t) {
+  const box = $('eQuick'); box.innerHTML = ''; box.hidden = true;
+  if (!me.isDM || !t) return;
+  if (!monsters) { loadMonsters().then(() => { if (selected === t.id) renderQuick(sc().tokens[t.id]); }); return; }
+  const m = monsterOf(t), FXM = globalThis.monsterFx; if (!m || !FXM) return;
+  const mk = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+  for (const [kind, list] of [['actions', m.actions], ['bonus', m.bonus], ['legendary', m.legendary]]) (list || []).forEach((it, idx) => {
+    const P = FXM.parse(it.d, m.name, kind), MT = FXM.meta(it, m);
+    if (!P || !((P.attack != null ? P.hit.length || P.variants.length : P.variants.length) || (MT && MT.multi && MT.multi.length))) return;
+    const row = mk('div', 'qa'), use = mk('button', 'use', `🎯 ${it.n}${kind === 'bonus' ? ' (bonus)' : kind === 'legendary' ? ' (legendary)' : ''}`);
+    use.title = it.d.slice(0, 300);
+    use.onclick = () => startAim({ title: `${t.label || m.name}: ${it.n}`, harm: true, color: '#ef4444', options: P.variants.length > 1 ? P.variants.map((v) => v.name) : null, send: (ids, amt, variant) => sendMsg({ type: 'monsterEffect', sceneId: editing, src: t.id, kind, idx, variant, targets: ids }) });
+    row.append(use);
+    if (P.attack != null) { const h = mk('button', '', sgn(P.attack)); h.title = 'Roll to hit (only you see it)'; h.onclick = (ev) => rollWith('1d20' + sgn(P.attack), `${t.label || m.name}: ${it.n}`.slice(0, 30), ev); row.append(h); }
+    for (const d of (P.hit || []).slice(0, 2)) { const b = mk('button', '', d.dice); b.title = `Roll ${d.dice} ${d.type || ''} damage (only you see it)`; b.onclick = () => rollWith(d.dice, `${it.n} damage`.slice(0, 30)); row.append(b); }
+    box.append(row);
+  });
+  box.hidden = !box.children.length;
+}
 $('eStat').onclick = async () => { await loadMonsters(); const m = monsterOf(selected && sc().tokens[selected]); if (m) showStatBlock(m, selected); else toast('No SRD stat block for this token'); };
 
 // ---------- chat ----------
@@ -1490,7 +1512,9 @@ let ruler = null;                    // my ruler: { points: [[x, y], ...], cur: 
 const remoteRulers = new Map();      // who → { sceneId, points, t }
 const pings = [];                    // { sceneId, x, y, who, t0 }
 let tplShape = 'cone', tplDraft = null, selTpl = null, tplDrag = null, tplAim = null;
-const tplSizes = { cone: 15, sphere: 20, cube: 15, line: 60, cylinder: 10 };
+// a spell's own area being placed (#13): its size is fixed, and when it's down, then(template) carries on with the cast
+let tplFix = null;
+const tplSizes = { cone: 15, sphere: 20, cube: 15, line: 60, cylinder: 10, circle: 10 };
 let labelEdit = null, labelDrag = null;
 const labelBoxes = new Map();        // id → box in world pixels, from the last frame
 
@@ -1556,7 +1580,7 @@ const L = (t) => t.size / 5;
 const cubeDir = (t) => [Math.cos(t.angle) >= -1e-9 ? 1 : -1, Math.sin(t.angle) >= -1e-9 ? 1 : -1];
 function tplContains(t, px, py) {
   const dx = px - t.x, dy = py - t.y, e = 1e-6;
-  if (t.shape === 'sphere' || t.shape === 'cylinder') return dx * dx + dy * dy <= L(t) * L(t) + e;
+  if (t.shape === 'sphere' || t.shape === 'cylinder' || t.shape === 'circle') return dx * dx + dy * dy <= L(t) * L(t) + e;
   if (t.shape === 'cube') { const [sx, sy] = cubeDir(t); return dx * sx >= -e && dx * sx <= L(t) + e && dy * sy >= -e && dy * sy <= L(t) + e; }
   const c = Math.cos(t.angle), sn = Math.sin(t.angle), along = dx * c + dy * sn, perp = Math.abs(-dx * sn + dy * c);
   if (along < -e || along > L(t) + e) return false;
@@ -1587,14 +1611,14 @@ function tplCells(s, t) {
 function tplOutline(t) {
   const c = Math.cos(t.angle), sn = Math.sin(t.angle), P = (a, b) => [(t.x + a * c - b * sn) * CELL, (t.y + a * sn + b * c) * CELL];
   ctx.beginPath();
-  if (t.shape === 'sphere' || t.shape === 'cylinder') { ctx.arc(t.x * CELL, t.y * CELL, L(t) * CELL, 0, Math.PI * 2); return; }
+  if (t.shape === 'sphere' || t.shape === 'cylinder' || t.shape === 'circle') { ctx.arc(t.x * CELL, t.y * CELL, L(t) * CELL, 0, Math.PI * 2); return; }
   if (t.shape === 'cube') { const [sx, sy] = cubeDir(t); ctx.rect(t.x * CELL, t.y * CELL, sx * L(t) * CELL, sy * L(t) * CELL); return; }
   const half = t.shape === 'cone' ? L(t) / 2 : t.shape === 'line' ? (t.width || 5) / 10 : L(t) / 2;
   const pts = t.shape === 'cone' ? [P(0, 0), P(L(t), -half), P(L(t), half)] : [P(0, -half), P(L(t), -half), P(L(t), half), P(0, half)];
   pts.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y))); ctx.closePath();
 }
 const tplHandle = (t) => { if (t.shape === 'cube') { const [sx, sy] = cubeDir(t); return [t.x + sx * L(t), t.y + sy * L(t)]; } return [t.x + Math.cos(t.angle) * L(t), t.y + Math.sin(t.angle) * L(t)]; };
-const tplName = (t) => `${t.size}-ft ${t.shape === 'sphere' || t.shape === 'cylinder' ? 'radius ' : ''}${t.shape}${t.shape === 'line' && t.width > 5 ? ` (${t.width} ft wide)` : ''}`;
+const tplName = (t) => `${t.size}-ft ${t.shape === 'sphere' || t.shape === 'cylinder' || t.shape === 'circle' ? 'radius ' : ''}${t.shape}${t.shape === 'line' && t.width > 5 ? ` (${t.width} ft wide)` : ''}`;
 const canEditTpl = (t) => me.isDM || (t.owner && t.owner === me.name);
 function drawTemplate(s, t, draft) {
   const z = view.zoom, col = t.color || '#e8390e', shown = tplShown(t);
@@ -1650,6 +1674,7 @@ function newTemplate(p, free) {
   tplDraft = { shape: tplShape, x: o.x, y: o.y, angle: tplShape === 'cube' ? Math.PI / 4 : 0, size: Number($('tplSize').value) || tplSizes[tplShape], width: Number($('tplWidth').value) || 5,
     color: $('tplFx').value ? SPELLS[$('tplFx').value].col : personColour(me.name, me.isDM), dragged: false, from: from ? from.id : null };
   if (from) Object.assign(tplDraft, edgeToward(from, q), { dragged: true }, aimAt(edgeToward(from, q), q, 5, tplShape));
+  if (tplFix) tplDraft.size = tplFix.size;
 }
 // where a line from the middle of a token towards a point leaves the token's space: a cone or line starts there
 function edgeToward(t, q) {
@@ -1672,20 +1697,30 @@ function finishTemplate() {
   sendMsg({ type: 'templateSet', sceneId: editing, tpl: { id, shape: d.shape, x: d.x, y: d.y, angle: d.angle, size: d.size, width: d.width, color: d.color, fx: fxk, cast: !!fxk } });
   tplSizes[d.shape] = d.size; $('tplSize').value = d.size;
   selTpl = id;
+  if (tplFix) { const f = tplFix; tplFix = null; setTableTool('move'); f.then({ ...d, id }); }
 }
+// cast a spell with an area: place the area first (its own size), then pick who's in it (#13)
+function placeSpellArea(sp, then) {
+  const shape = sp.aoe.shape === 'emanation' ? 'sphere' : sp.aoe.shape;
+  document.querySelector('[data-tt="template"]').click(); setTplShape(shape); $('tplSize').value = sp.aoe.size; $('tplFx').value = FX_OF[sp.type] || (sp.heal ? 'healing' : '');
+  tplFix = { size: sp.aoe.size, then };
+  toast(`Place ${sp.name} (${sp.aoe.size}-ft ${sp.aoe.shape === 'cylinder' || sp.aoe.shape === 'sphere' ? 'radius ' + sp.aoe.shape : sp.aoe.shape}): ${shape === 'cone' || shape === 'line' ? 'drag the way it points from your token' : shape === 'cube' ? 'drag from one corner' : 'click where its centre goes'}. Esc cancels.`, 6000);
+}
+addEventListener('keydown', (e) => { if (e.key === 'Escape' && tplFix) { tplFix = null; tplDraft = null; setTableTool('move'); toast('Spell cancelled: nothing spent'); draw(); } });
 
 const TPL_HELP = {
   cone: 'It starts at your token (the DM\'s: the selected token): drag the way it points. Shift+drag starts it anywhere else.',
   sphere: 'Click a grid corner for the centre, or drag out to the radius you want.',
   cube: 'Drag from one corner of the cube to the opposite corner.',
   line: 'It starts at your token (the DM\'s: the selected token): drag the way it goes. Shift+drag starts it anywhere else.',
-  cylinder: 'Click a grid corner for the centre, or drag out to the radius you want.'
+  cylinder: 'Click a grid corner for the centre, or drag out to the radius you want.',
+  circle: 'A flat circle on the ground: click a grid corner for the centre, or drag out to the radius you want.'
 };
 function setTplShape(shape) {
   tplShape = shape;
   document.querySelectorAll('#tplPop [data-shape]').forEach((b) => b.classList.toggle('on', b.dataset.shape === shape));
   $('tplSize').value = tplSizes[shape];
-  $('tplSizeLbl').textContent = shape === 'sphere' || shape === 'cylinder' ? 'Radius' : shape === 'cube' ? 'Side' : 'Length';
+  $('tplSizeLbl').textContent = shape === 'sphere' || shape === 'cylinder' || shape === 'circle' ? 'Radius' : shape === 'cube' ? 'Side' : 'Length';
   document.querySelectorAll('#tplPop .tplw').forEach((el) => { el.style.display = shape === 'line' ? '' : 'none'; });
   $('tplHelp').innerHTML = TPL_HELP[shape] + ' Click one of yours to move it; drag its dot to aim or resize; <kbd>Del</kbd> removes it.';
 }
@@ -1700,6 +1735,24 @@ $('tplClearAll').onclick = () => { sendMsg({ type: 'templateRemove', sceneId: ed
 
 // ----- pings -----
 function sendPing(p, focus) { const q = toSq(p); sendMsg({ type: 'ping', sceneId: editing, x: q.x, y: q.y, focus: !!focus }); }
+// a ping somewhere you aren't looking (#21): a dotted line flashes from the middle of your view towards it, and a
+// "View ping" button takes you there; both fade after 5 seconds
+function offscreenPing(pg) {
+  const r = canvas.getBoundingClientRect(), sx = r.left + view.x + pg.x * CELL * view.zoom, sy = r.top + view.y + pg.y * CELL * view.zoom, m = 30;
+  if (sx >= r.left + m && sx <= r.right - m && sy >= r.top + m && sy <= r.bottom - m) return;
+  const cx = r.left + r.width / 2, cy = r.top + r.height / 2, dx = sx - cx, dy = sy - cy;
+  const k = Math.min((r.width / 2 - 70) / Math.abs(dx || 1e-6), (r.height / 2 - 40) / Math.abs(dy || 1e-6)), ex = cx + dx * k, ey = cy + dy * k;
+  const col = personColour(pg.who, pg.dm), ns = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(ns, 'svg'); svg.setAttribute('class', 'pingline'); svg.style.cssText = `left:${r.left}px;top:${r.top}px;width:${r.width}px;height:${r.height}px`;
+  const ln = document.createElementNS(ns, 'line'); ln.setAttribute('x1', cx - r.left); ln.setAttribute('y1', cy - r.top); ln.setAttribute('x2', ex - r.left); ln.setAttribute('y2', ey - r.top); ln.setAttribute('stroke', col);
+  svg.append(ln); document.body.append(svg);
+  const b = document.createElement('button'); b.className = 'pingbtn'; b.textContent = `📍 View ping${pg.who ? ' (' + pg.who + ')' : ''}`; b.style.borderColor = col;
+  b.style.left = Math.max(r.left + 8, Math.min(r.right - 170, ex - 80)) + 'px'; b.style.top = Math.max(r.top + 8, Math.min(r.bottom - 40, ey - 16)) + 'px';
+  b.onclick = () => { centreOnSquare(pg.x, pg.y, true); b.remove(); svg.remove(); };
+  document.body.append(b);
+  setTimeout(() => { svg.classList.add('gone'); b.classList.add('gone'); }, 4200);
+  setTimeout(() => { svg.remove(); b.remove(); }, 5000);
+}
 function drawPings() {
   const now = performance.now(), z = view.zoom;
   for (let i = pings.length - 1; i >= 0; i--) if (now - pings[i].t0 > 2400) pings.splice(i, 1);
@@ -1968,6 +2021,7 @@ function renderEditor() {
   const dc = t.ddb && Object.values(dmChars).find((c) => c.link === t.ddb); $('eCharRow').hidden = !dc;
   $('eSheet').hidden = !sheet; $('eSheet').textContent = sheet ? '📜 ' + sheet + ' (from D&D Beyond)' : '';
   $('eStatRow').classList.toggle('off', !(me.isDM && monsterOf(t)));
+  renderQuick(t);
   const floors = floorList(sc());
   $('eFloorRow').classList.toggle('off', !(me.isDM && floors.length > 1));
   if (me.isDM && floors.length > 1 && keep !== $('eFloor')) {
@@ -1977,6 +2031,7 @@ function renderEditor() {
   }
   const on = new Set(t.conditions || []);
   $('eConds').querySelectorAll('button').forEach((b) => b.classList.toggle('on', on.has(b.dataset.id)));
+  { const names = [...on].map((id) => (conditions().find((c) => c.id === id) || { name: id }).name.split(' (')[0]); $('eCondOn').textContent = names.length ? names.join(', ') : 'none'; } // shown even when the list is folded (#18)
   renderMarks(t);
   const mine2 = me.isDM || (t.owner && t.owner === me.name);
   $('eActs').hidden = !mine2;
@@ -2127,6 +2182,9 @@ $('fxAdd') && ($('fxAdd').onclick = () => {
   else msg.custom = { cond: $('fxCond').value, save: $('fxSave').value, how: $('fxHow').value, dice: $('fxDice').value.trim().replace(/\s/g, ''), type: $('fxType').value, rounds: +$('fxRounds').value || 0, name: $('fxName').value };
   sendMsg(msg);
 });
+// the conditions list folds away (#18); open or closed is remembered
+try { $('eCondBox').open = localStorage.getItem('tt-conds-open') === '1'; } catch { /* no storage */ }
+$('eCondBox').addEventListener('toggle', () => { try { localStorage.setItem('tt-conds-open', $('eCondBox').open ? '1' : '0'); } catch { /* no storage */ } });
 function buildConditionGrid() {
   const box = $('eConds'); box.innerHTML = '';
   for (const c of conditions()) {
@@ -2157,7 +2215,12 @@ $('eDdb').onchange = () => {
 const openSheet = (t) => { if (t && t.ddb) window.open(t.ddb, '_blank', 'noopener'); };
 $('eChar').onclick = () => { const t = selected && sc().tokens[selected]; openCharSheet(t && Object.values(dmChars).find((c) => c.link === t.ddb)); };
 $('eDdbOpen').onclick = () => openSheet(selected && sc().tokens[selected]);
-canvas.addEventListener('dblclick', (e) => { const s = sc(); if (!s) return; const t = tokenAt(s, toWorld(e)); if (t && t.ddb) openSheet(t); });
+canvas.addEventListener('dblclick', (e) => {
+  const s = sc(); if (!s) return; const p = toWorld(e), t = tokenAt(s, p);
+  if (t && t.ddb) return openSheet(t);
+  // the DM, with nothing in hand: a double-click opens or closes a door or chest, or lights or puts out a torch (#20)
+  if (me.isDM && mode === 'play' && tt === 'move' && !t && !aim && !tplFix && !tplDraft) { const q = toSq(p); sendMsg({ type: 'doorToggle', sceneId: editing, x: q.x, y: q.y, lights: true }); }
+});
 $('eHpShow').onchange = () => updateSelected({ hpShow: $('eHpShow').value || null });
 const applyHp = (sign) => {
   const n = Math.abs(parseInt($('eAmt').value, 10)); if (!n || !selected) return;
@@ -2402,6 +2465,12 @@ canvas.addEventListener('pointermove', (e) => {
   if (!hover || hover.x !== c.x || hover.y !== c.y) {
     hover = c;
     $('cellInfo').textContent = inside(s, c.x, c.y) ? `${String.fromCharCode(65 + (c.x % 26))}${c.x >= 26 ? Math.floor(c.x / 26) : ''}${c.y + 1}` : '';
+    { // a token's conditions as a tooltip (#9)
+      const ht = Object.values(s.tokens).find((t) => c.x >= t.x && c.x < t.x + t.size && c.y >= t.y && c.y < t.y + t.size);
+      const cs = ht ? (ht.conditions || []).map((id) => (conditions().find((x) => x.id === id) || { name: id }).name) : [];
+      const tip = ht && cs.length ? `${ht.label || 'Token'}: ${cs.join(', ')}` : '';
+      if (canvas.title !== tip) canvas.title = tip;
+    }
     if (me.isDM && fogTool === 'room' && !fogStroke) fogPreview = roomCells(s, c);
     if (me.isDM && (mode === 'build' || fogTool)) draw();
   }
@@ -2411,6 +2480,7 @@ canvas.addEventListener('pointermove', (e) => {
     const q = toSq(p), d = Math.hypot(q.x - tplDraft.x, q.y - tplDraft.y), ft = tplDraft.from && s.tokens[tplDraft.from];
     if (ft) { const o = edgeToward(ft, q); Object.assign(tplDraft, o, aimAt(o, q, 5, tplDraft.shape)); } // turning around the caster
     else if (d > 0.45 || tplDraft.dragged) { Object.assign(tplDraft, aimAt(tplDraft, q, 5, tplDraft.shape)); tplDraft.dragged = true; }
+    if (tplFix) tplDraft.size = tplFix.size; // the spell's size can't change
     draw(); return;
   }
   if (tplAim) { const t = (s.templates || {})[tplAim.id]; if (t) Object.assign(tplAim, aimAt(t, toSq(p), 5, t.shape)); draw(); return; }
@@ -3315,7 +3385,11 @@ function aimBar() {
   const bar = $('aimBar'); bar.hidden = !aim; if (!aim) return;
   $('aimTitle').textContent = aim.title;
   const used = [...aim.count.values()].reduce((a, b) => a + b, 0);
-  $('aimCount').textContent = aim.max && !aim.pieces && aim.ids.size ? `${aim.ids.size} of ${aim.max} chosen` : aim.pieces ? `${used} of ${aim.pieces} ${aim.word}s placed · Shift+click takes one back` : aim.ids.size ? `${aim.ids.size} chosen` : aim.harm ? 'Click the tokens it hits' : 'Click who it’s for';
+  // who's chosen, by name (#10): "→ Brother, Gob 2 ×2"
+  const s0 = sc(), nm = (id) => { const t = s0 && s0.tokens[id]; return t ? (t.owner && sameName(t.owner, me.name) && !t.sum ? 'you' : t.label || '?') : '?'; };
+  const names = aim.pieces ? [...aim.count].map(([id, n]) => nm(id) + (n > 1 ? ' ×' + n : '')) : [...aim.ids].map(nm);
+  const list = names.length ? ' → ' + (names.length > 4 ? names.slice(0, 4).join(', ') + ` and ${names.length - 4} more` : names.join(', ')) : '';
+  $('aimCount').textContent = aim.max && !aim.pieces && aim.ids.size ? `${aim.ids.size} of ${aim.max}${list}` : aim.pieces ? `${used} of ${aim.pieces} ${aim.word}s${list} · Shift+click takes one back` : aim.ids.size ? list.trim() : aim.harm ? 'Click the tokens it hits' : 'Click who it’s for';
   $('aimArea').hidden = !!aim.one || !!aim.pieces || !!aim.cell; $('aimGo').hidden = !!aim.cell; $('aimSelf').hidden = me.isDM || !!aim.cell;
   if (aim.cell) $('aimCount').textContent = 'Click a square';
   $('aimAmt').hidden = !aim.amount; if (aim.amount && !$('aimAmt').value) $('aimAmt').value = aim.amount;
@@ -3323,18 +3397,18 @@ function aimBar() {
   $('aimGo').disabled = !aim.ids.size && !aim.allowNone;
   $('aimGo').textContent = aim.ids.size ? 'Apply' : aim.allowNone ? 'Cast with no targets' : 'Apply';
 }
-$('aimCancel').onclick = stopAim;
+$('aimCancel').onclick = () => { if (aim && aim.onCancel) aim.onCancel(); stopAim(); };
 $('aimSelf').onclick = () => { const s = sc(); if (!s || !aim) return; const t = myTokens(s)[0]; if (!t) return toast('Your token isn’t on this map'); if (aim.one) aim.ids.clear(); aim.ids.add(t.id); if (aim.pieces && [...aim.count.values()].reduce((x, y) => x + y, 0) < aim.pieces) aim.count.set(t.id, (aim.count.get(t.id) || 0) + 1); aimBar(); draw(); };
-$('aimArea').onclick = () => { // every token in my most recent area on this map
+$('aimArea').onclick = () => { // every token in my most recent area on this map ("Designated area", #12)
   const s = sc(); if (!s || !aim) return;
   const mine = Object.values(s.templates || {}).filter((t) => (me.isDM ? !t.owner : t.owner === me.name)).pop();
-  if (!mine) return toast('Place your area on the map first (◎ Area)');
+  if (!mine) return toast('Place the spell\'s area on the map first (◎ Area), then this picks everyone in it');
   const cells = new Set(tplCells(s, mine).map(([x, y]) => x + ',' + y));
   for (const t of Object.values(s.tokens)) { let inside = false; for (let y = t.y; y < t.y + t.size && !inside; y++) for (let x = t.x; x < t.x + t.size; x++) if (cells.has(x + ',' + y)) { inside = true; break; } if (inside) aim.ids.add(t.id); }
   aimBar(); draw();
 };
 $('aimGo').onclick = () => { if (!aim) return; const amt = Math.max(1, Math.min(+$('aimAmt').value || 0, aim.amount || 1e9)); aim.send(aim.pieces ? [...aim.count].flatMap(([id, n]) => Array(n).fill(id)) : [...aim.ids], amt, +$('aimOpt').value || 0); $('aimAmt').value = ''; stopAim(); };
-addEventListener('keydown', (e) => { if (e.key === 'Escape' && aim) stopAim(); });
+addEventListener('keydown', (e) => { if (e.key === 'Escape' && aim) { if (aim.onCancel) aim.onCancel(); stopAim(); } });
 
 function renderResources(d, c, el) {
   if (!(c.resources || []).length) return;
@@ -3353,11 +3427,11 @@ function renderResources(d, c, el) {
 // class features and feats that make a creature save (Stunning Strike, Cunning Strike, Turn Undead…), and Grapple and Shove
 function renderFeatures(d, c, el) {
   if (!(c.featureInfo || []).length) return;
-  d.append(el('div', 'splvl', 'Features that make a creature save'));
+  d.append(el('div', 'splvl', 'Features that make a creature save (or a contest)'));
   for (const f of c.featureInfo) {
-    const row = el('div', 'slots res'); row.append(el('span', 'sl rn', f.name)); row.title = (f.note ? f.note + ' ' : '') + `DC ${f.dc}${f.cost ? ' · uses ' + f.cost : ''}`;
-    const b = el('button', '', `🎯 DC ${f.dc}`);
-    b.onclick = () => startAim({ title: `${f.name} (DC ${f.dc})`, harm: true, color: '#ef4444', options: f.options && f.options.length ? f.options : null, send: (ids, amt, option) => sendMsg({ type: 'featEffect', name: f.name, option, targets: ids }) });
+    const row = el('div', 'slots res'); row.append(el('span', 'sl rn', f.name)); row.title = (f.note ? f.note + ' ' : '') + (f.contest ? 'Athletics contest' : `DC ${f.dc}`) + (f.cost ? ' · uses ' + f.cost : '');
+    const b = el('button', '', f.contest ? '🎯 Contest' : `🎯 DC ${f.dc}`);
+    b.onclick = () => startAim({ title: f.contest ? `${f.name} (your Athletics against theirs)` : `${f.name} (DC ${f.dc})`, harm: true, color: '#ef4444', options: f.options && f.options.length ? f.options : null, send: (ids, amt, option) => sendMsg({ type: 'featEffect', name: f.name, option, targets: ids }) });
     row.append(b); d.append(row);
   }
 }
@@ -3407,11 +3481,24 @@ function renderSpells(d, c, el) {
       cast.onclick = () => {
         // True Strike: a weapon attack with your spellcasting ability, Radiant damage
         if (/^true strike$/i.test(sp.name)) { const ws = (c.attacks || []).filter((a) => a.damage); if (!ws.length) return toast('No weapon to strike with'); return startAim({ title: 'True Strike: pick the weapon, click the target', harm: true, one: true, color: '#facc15', options: ws.map((a) => a.name), send: (ids, amt, option) => ids[0] && sendMsg({ type: 'attackEffect', name: ws[option || 0].name, target: ids[0], trueStrike: true, radiant: true }) }); }
-        if (!lands) return sendMsg({ type: 'charCast', ...slotMsg() });
+        if (!lands && !sp.zone) return sendMsg({ type: 'charCast', ...slotMsg() });
+        // a spell with a fixed area (Fireball, Spike Growth, Burning Hands…): place it first, at its own size (#13)
+        if (sp.aoe && /cone|sphere|cube|line|cylinder/.test(sp.aoe.shape) && !sp.multi) {
+          const msg0 = slotMsg(), opts = sp.cond && sp.cond.options ? sp.cond.options.map((o) => o.name) : sp.types ? sp.types.map((x) => x[0].toUpperCase() + x.slice(1)) : null;
+          return placeSpellArea(sp, (d) => {
+            const s1 = sc(), cells = new Set(tplCells(s1, d).map(([x, y]) => x + ',' + y));
+            // an area that only works on what moves into it (Spike Growth, Moonbeam, Web): no targets now, the area does the rest
+            if (sp.zone && !sp.zoneHitsNow && !opts) return sendMsg({ type: 'spellEffect', cast: true, targets: [], ...msg0 });
+            startAim({ title: `Cast ${sp.name}`, harm, color: harm ? '#ef4444' : '#22c55e', allowNone: true, options: opts, onCancel: () => sendMsg({ type: 'templateRemove', sceneId: editing, id: d.id }),
+              send: (ids, amt, option) => sendMsg(ids.length || sp.summon || sp.move || sp.zone ? { type: 'spellEffect', cast: true, targets: sp.zone && !sp.zoneHitsNow ? [] : ids, option, dmgType: option, ...msg0 } : { type: 'charCast', ...msg0 }) });
+            for (const t of Object.values(s1.tokens)) { let hit = false; for (let y = t.y; y < t.y + t.size && !hit; y++) for (let x = t.x; x < t.x + t.size; x++) if (cells.has(x + ',' + y)) { hit = true; break; } if (hit && !t.hidden) aim.ids.add(t.id); }
+            aimBar(); draw();
+          });
+        }
         const lv = lvAt(), pieces = sp.multi ? sp.multi.n + (sp.level > 0 ? sp.multi.up * (lv - sp.level) : 0) : 0, max = sp.targets && !sp.multi ? sp.targets.n + (sp.targets.up || 0) * (lv - sp.level) : 0;
         startAim({ title: `Cast ${sp.name}`, harm, pieces, max, word: sp.multi && sp.multi.word, color: harm ? '#ef4444' : '#22c55e', self: sp.selfOnly || (sp.cond && sp.cond.self), allowNone: true,
           options: sp.cond && sp.cond.options ? sp.cond.options.map((o) => o.name) : sp.types ? sp.types.map((x) => x[0].toUpperCase() + x.slice(1)) : null,
-          send: (ids, amt, option) => sendMsg(ids.length || sp.summon || sp.move ? { type: 'spellEffect', cast: true, targets: ids, option, dmgType: option, ...slotMsg() } : { type: 'charCast', ...slotMsg() }) });
+          send: (ids, amt, option) => sendMsg(ids.length || sp.summon || sp.move || sp.zone ? { type: 'spellEffect', cast: true, targets: ids, option, dmgType: option, ...slotMsg() } : { type: 'charCast', ...slotMsg() }) });
       };
       // while it lasts, some spells do it again without a new slot: Sunbeam's new line, Bigby's Hand, a creature walking into the web
       if ((sp.cond && sp.cond.again && !sp.conc) || (sp.conc && c.concOn === sp.name && lands)) {
@@ -3440,6 +3527,7 @@ function renderSpells(d, c, el) {
 const sgn = (n) => (n >= 0 ? '+' + n : String(n));
 function renderChar() {
   const sec = $('charSec'); sec.hidden = me.isDM; if (me.isDM) return;
+  $('macroSec').hidden = !!myChar; // a character's rolls are all in My character (#17); the quick rolls stay for players without one
   const box = $('charBody'); box.innerHTML = '';
   const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
   if (!myChar) {
@@ -3466,6 +3554,30 @@ function renderChar() {
   actions.append(place, init); box.append(actions);
   const section = (title, open, fill) => { const d = el('details'); d.open = title in charOpen ? charOpen[title] : open; d.ontoggle = () => { charOpen[title] = d.open; }; d.append(el('summary', '', title)); fill(d); box.append(d); };
   const rollBtn2 = (label, bonus, what, pro) => { const b = el('button', pro ? 'pro' : ''); b.append(el('span', '', label), el('b', '', sgn(bonus))); b.title = `${what}: 1d20${sgn(bonus)} (Shift: advantage, Alt: disadvantage)`; b.onclick = (ev) => rollWith('1d20' + sgn(bonus), what, ev); return b; };
+  // what's on the character right now, where it came from and how it ends; and stopping concentration (#9, #11)
+  if (onMap) {
+    const cs = (onMap.conditions || []).filter((x) => x !== 'concentrating'), conc = (onMap.conditions || []).includes('concentrating');
+    section(`Active effects${cs.length || conc ? ` (${cs.length + (conc ? 1 : 0)})` : ''}`, true, (d) => {
+      if (!cs.length && !conc) { d.append(el('div', 'hint', 'Nothing on you right now.')); return; }
+      const fromWho = (by) => { if (!by || by === 'dm') return 'the DM'; if (by.startsWith('p:')) { const n = by.slice(2); return sameName(n, me.name) ? 'you' : n[0].toUpperCase() + n.slice(1); } const t = sc() && sc().tokens[by.slice(2)]; return t ? t.label || 'a creature' : 'a creature'; };
+      if (conc) {
+        const row = el('div', 'fxrow'); row.append(el('span', 'fxn', `🧠 Concentrating${c.concOn ? ' on ' + c.concOn : ''}`));
+        const stop = el('button', 'danger', 'Stop concentrating'); stop.title = 'The spell ends, and so does what it put on its targets';
+        stop.onclick = () => {
+          if (!stop.dataset.armed) { stop.dataset.armed = 1; stop.textContent = 'Click again to stop'; setTimeout(() => { if (stop.isConnected) { delete stop.dataset.armed; stop.textContent = 'Stop concentrating'; } }, 3000); return; }
+          sendMsg({ type: 'tokenUpdate', sceneId: editing, id: onMap.id, conditions: (onMap.conditions || []).filter((x) => x !== 'concentrating') });
+        };
+        row.append(stop); d.append(row);
+      }
+      for (const id of cs) {
+        const cc = conditions().find((x) => x.id === id), mk = (onMap.marks || []).find((m) => m.c === id);
+        const row = el('div', 'fxrow'), tx = el('div', 'fxn');
+        tx.append(el('b', '', (cc ? cc.name : id) + (id === 'exhaustion' ? ` (level ${onMap.exhaustion || 1})` : '')));
+        const how = mk ? `${mk.spell} from ${fromWho(mk.by)}: ${howItEnds(mk) || 'until it’s taken off'}` : 'until you or the DM take it off';
+        tx.append(el('div', 'hint', how)); row.append(tx); d.append(row);
+      }
+    });
+  }
   if (c.attacks.length) section('Attacks', true, (d) => { for (const a of c.attacks) { const row = el('div', 'atk'); row.append(el('span', '', a.name + (a.dc ? ` (save DC ${a.dc})` : ''))); const h = el('button', '', 'Hit ' + a.hit.replace('1d20', '')); h.onclick = (ev) => rollWith(a.hit, a.name.slice(0, 22) + ' hit', ev); row.append(h);
       if (a.damage) { const tg = el('button', '', '🎯'); tg.title = 'Attack a token: Advantage, AC, damage and Hex or Hunter\'s Mark done for you'; tg.onclick = () => startAim({ title: `${a.name}: click the target`, harm: true, one: true, color: '#ef4444', options: ['Attack', 'Attack: knock it out if it drops'], send: (ids, amt, option) => ids[0] && sendMsg({ type: 'attackEffect', name: a.name, target: ids[0], knockout: option === 1 }) }); row.append(tg); } if (a.damage) { const g = el('button', '', a.damage); g.title = 'Damage' + (a.type ? ' (' + a.type + ')' : ''); g.onclick = () => rollWith(a.damage, a.name.slice(0, 20) + ' damage'); row.append(g); } else row.append(el('span')); d.append(row); } });
   section('Ability checks', false, (d) => { const g = el('div', 'rolls six'); for (const a of c.abilities) g.append(rollBtn2(a.name, a.mod, a.name + ' check')); d.append(g); });

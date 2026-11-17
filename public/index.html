@@ -263,6 +263,26 @@
   #gate input { width:100%; }
   #join { position:fixed; inset:0; background:rgba(0,0,0,.82); display:flex; align-items:center; justify-content:center; z-index:20; }
   #join[hidden] { display:none; }
+  .pingline { position:fixed; pointer-events:none; z-index:30; transition:opacity .8s; }
+  .pingline line { stroke-width:3; stroke-dasharray:6 7; animation:pingdash 0.6s linear infinite, pingflash 0.5s ease-in-out 3 alternate; }
+  @keyframes pingdash { to { stroke-dashoffset:-13; } }
+  @keyframes pingflash { from { opacity:1; } to { opacity:.35; } }
+  .pingbtn { position:fixed; z-index:31; background:rgba(15,15,15,.92); border:2px solid; border-radius:16px; padding:5px 12px; font-size:13px; transition:opacity .8s; }
+  .pingline.gone, .pingbtn.gone { opacity:0; }
+  #eQuick { display:flex; flex-direction:column; gap:4px; margin:4px 0 6px; }
+  #eQuick .qa { display:flex; gap:4px; align-items:center; }
+  #eQuick .qa .use { flex:1; text-align:left; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  #eQuick .qa button { padding:4px 8px; font-size:12px; }
+  #eCondBox { margin:10px 0 6px; }
+  #eCondBox > summary { cursor:pointer; list-style:none; display:flex; gap:6px; align-items:baseline; flex-wrap:wrap; }
+  #eCondBox > summary::before { content:'▸'; color:var(--dim); }
+  #eCondBox[open] > summary::before { content:'▾'; }
+  #eCondBox[open] > summary { margin-bottom:6px; }
+  .fxrow { display:flex; align-items:flex-start; gap:8px; padding:5px 0; border-bottom:1px solid var(--line); }
+  .fxrow:last-child { border-bottom:none; }
+  .fxrow .fxn { flex:1; min-width:0; }
+  .fxrow .hint { margin:2px 0 0; }
+  .fxrow button { flex:none; }
   #gmPrev { width:100%; max-height:380px; background:#0b0b0b; border-radius:6px; display:block; margin-bottom:8px; }
   #join form { background:var(--panel); padding:24px; border-radius:10px; width:320px; border-top:3px solid var(--accent); }
   #eSummon[hidden] { display:none!important; }
@@ -710,7 +730,7 @@
     </div>
     <div id="tplPop" class="pop" hidden>
       <div class="tplrow">
-        <div class="shapes"><button data-shape="cone" class="on">Cone</button><button data-shape="sphere">Sphere</button><button data-shape="cube">Cube</button><button data-shape="line">Line</button><button data-shape="cylinder">Cylinder</button></div>
+        <div class="shapes"><button data-shape="cone" class="on">Cone</button><button data-shape="sphere">Sphere</button><button data-shape="cube">Cube</button><button data-shape="line">Line</button><button data-shape="cylinder">Cylinder</button><button data-shape="circle" title="A flat circle on the ground">Circle</button></div>
         <span class="hint" id="tplSizeLbl">Length</span><input id="tplSize" type="number" min="5" max="500" step="5" value="15"><span class="hint">ft</span>
         <span class="hint tplw">Width</span><input id="tplWidth" class="tplw" type="number" min="5" max="60" step="5" value="5"><span class="hint tplw">ft</span>
         <select id="tplFx" title="What the spell looks and sounds like when it goes off"><option value="">No effect</option><option value="fire">🔥 Fire</option><option value="lightning">⚡ Lightning</option><option value="cold">❄ Cold</option><option value="acid">🧪 Acid</option><option value="thunder">💥 Thunder</option><option value="necrotic">💀 Necrotic</option><option value="radiant">✨ Radiant</option><option value="poison">☠ Poison</option><option value="force">🔮 Force</option><option value="psychic">🧠 Psychic</option><option value="healing">💚 Healing</option></select>
@@ -790,11 +810,11 @@
         </div>
         <div class="hprow dm-only" id="eFloorRow"><span class="hpl">Floor</span><select id="eFloor" style="flex:1;min-width:0" title="Move this token to another floor"></select></div>
         <div class="row dm-only" id="eStatRow"><button id="eStat" title="This monster's stat block, with clickable attacks and damage">📖 Stat block</button></div>
+        <div id="eQuick" class="dm-only"></div>
         <div class="row"><input id="eDdb" placeholder="D&amp;D Beyond character link" title="Paste the character's link from D&amp;D Beyond, e.g. https://www.dndbeyond.com/characters/12345678"><button id="eDdbOpen" class="fixed" title="Open the character sheet">📜 Sheet</button></div>
-        <div class="hpl" style="margin:10px 0 6px">Conditions</div>
         <div id="eSheet" class="hint" hidden></div>
         <div class="row dm-only" id="eCharRow" hidden><button id="eChar">🎒 Inventory and spells…</button></div>
-        <div id="eConds" class="conds"></div>
+        <details id="eCondBox"><summary><span class="hpl" style="margin:0">Conditions</span> <span id="eCondOn" class="hint" style="margin:0"></span></summary><div id="eConds" class="conds"></div></details>
         <div id="eMarks" hidden></div>
         <details id="eFx" class="dm-only" hidden><summary>＋ Effect with a saving throw…</summary>
           <div class="fxform">
@@ -936,7 +956,7 @@
     </div>
   </div>
 </div>
-<div id="aimBar" hidden><span id="aimTitle"></span><span id="aimCount"></span><select id="aimOpt" hidden></select><input id="aimAmt" type="number" min="1" title="How many hit points" hidden><button id="aimSelf" title="Add your own token">Me</button><button id="aimArea" title="Every token inside the area you placed">In my area</button><button id="aimGo" class="primary">Apply</button><button id="aimCancel">Cancel</button></div>
+<div id="aimBar" hidden><span id="aimTitle"></span><span id="aimCount"></span><select id="aimOpt" hidden></select><input id="aimAmt" type="number" min="1" title="How many hit points" hidden><button id="aimSelf" title="Add your own token">Me</button><button id="aimArea" title="Every token inside the spell area you placed on the map (◎ Area)">Designated area</button><button id="aimGo" class="primary">Apply</button><button id="aimCancel">Cancel</button></div>
 <div class="modal" id="itemModal" hidden>
   <div class="dialog">
     <div class="dhead"><h2 style="margin:0">Item</h2><div class="spacer"></div><button class="close" data-close>✕</button></div>

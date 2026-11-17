@@ -14,7 +14,7 @@ const FX = require('../public/js/monsterfx.js');
 const SUMS = require('./summons');
 const ddb = require('./ddb');
 
-const VERSION = '1.22.1';
+const VERSION = '1.23.0';
 const PUBLIC = path.join(__dirname, '..', 'public');
 const VISION = require(path.join(PUBLIC, 'js', 'vision.js'));
 const CATALOG = JSON.parse(fs.readFileSync(path.join(PUBLIC, 'catalog.json'), 'utf8'));
@@ -57,7 +57,7 @@ const sameName = (a, b) => String(a).trim().toLowerCase() === String(b).trim().t
 const pinHash = (pin, salt) => crypto.scryptSync(String(pin), salt, 32).toString('hex');
 const DDB = /^https:\/\/(www\.)?(dndbeyond\.com\/(profile\/[^/]+\/)?characters\/\d+[\w\-/]*|ddb\.ac\/characters\/\d+[\w\-/]*)$/i;
 const num = (v, d) => (Number.isFinite(Number(v)) ? Number(v) : d);
-const SHAPES = ['cone', 'sphere', 'cube', 'line', 'cylinder'];
+const SHAPES = ['cone', 'sphere', 'cube', 'line', 'cylinder', 'circle'];
 const DIAGONALS = ['5', '5105'];
 const LABEL_SIZES = ['s', 'm', 'l'];
 const AMBIENT = ['bright', 'dim', 'dark'];
@@ -1078,6 +1078,9 @@ function startServer({ port = 3000, host = '0.0.0.0', dataDir, dmKey, network = 
   // cast: { caster (token or null), at (slot level), up (levels above), dc, mod (spellcasting modifier), option, raw (target ids with repeats) }
   function castSpell(sc, sp, targets, cast, ctx) {
     const lines = ctx.lines, roll = ctx.roll, who = (t) => t.label || '?', up = cast.up || 0, dc = cast.dc;
+    // a lasting area that only works on creatures entering it or starting a turn there (Spike Growth, Moonbeam, Web…):
+    // casting it hurts nobody; the area does the rest (#15)
+    { const Z0 = RULES.ZONES[String(sp.name || '').toLowerCase().replace(/[’]/g, "'")]; if (Z0 && !Z0.appear && cast.first && targets.length) { lines.push(`ℹ ${sp.name} doesn't hit anyone as it appears: only creatures that move in it${Z0.start ? ' or start their turn there' : Z0.end ? ' or end their turn there' : ''}`); targets = []; } }
     // how many it can target (Bless: three, and one more for each slot level above 1st)
     if (sp.targets && !sp.multi) { const max = sp.targets.n + (sp.targets.up || 0) * up; if (targets.length > max) { lines.push(`ℹ ${sp.name} can target ${max} at this level: ${targets.slice(max).map(who).join(', ')} left out`); targets = targets.slice(0, max); } }
     const hp = (t) => (isPC(t) ? ` (${t.hp}/${t.maxHp ?? '?'}${t.tempHp ? ' +' + t.tempHp + ' temp' : ''})` : t.hp === 0 ? ' (down)' : '');
@@ -1221,7 +1224,7 @@ function startServer({ port = 3000, host = '0.0.0.0', dataDir, dmKey, network = 
   const tplL = (t) => t.size / 5;
   function tplHas(t, px, py) { // the same shapes the map draws
     const dx = px - t.x, dy = py - t.y, e = 1e-6;
-    if (t.shape === 'sphere' || t.shape === 'cylinder') return dx * dx + dy * dy <= tplL(t) * tplL(t) + e;
+    if (t.shape === 'sphere' || t.shape === 'cylinder' || t.shape === 'circle') return dx * dx + dy * dy <= tplL(t) * tplL(t) + e;
     if (t.shape === 'cube') { const sx = Math.cos(t.angle) >= -1e-9 ? 1 : -1, sy = Math.sin(t.angle) >= -1e-9 ? 1 : -1; return dx * sx >= -e && dx * sx <= tplL(t) + e && dy * sy >= -e && dy * sy <= tplL(t) + e; }
     const c = Math.cos(t.angle), sn = Math.sin(t.angle), along = dx * c + dy * sn, perp = Math.abs(-dx * sn + dy * c);
     if (along < -e || along > tplL(t) + e) return false;
@@ -1315,6 +1318,8 @@ function startServer({ port = 3000, host = '0.0.0.0', dataDir, dmKey, network = 
       others: !!Z.others, inside: Z.inside || null, on: { enter: own(Z.enter), start: own(Z.start), end: own(Z.end), move: Z.move || null }, until: c && sp.duration ? c.round + (RULES.roundsOf(sp.duration) || 0) : null, hits: {} };
     const k = turnKey(sc); for (const t of targets) z.hits[t.id] = k; // what the casting itself hit isn't hit again this turn
     sc.zones = sc.zones || {}; sc.zones[id] = z; sendZones(sc); zoneInside(sc);
+    // the area can't be moved by the player, or only with their action or bonus action (#16); the DM can always move it
+    if (tpl) { tpl.lock = Z.moves || 'fixed'; tpl.spell = sp.name; toScene(sc.id, { type: 'template', sceneId: sc.id, tpl }); }
     ctx.lines.push(`🌀 ${sp.name} stays: creatures that move into it${Z.start ? ' or start their turn there' : Z.end ? ' or end their turn there' : ''} are hit`);
   }
   // ----- 1.19: summons on the map, teleports and pushes -----
@@ -2216,6 +2221,23 @@ function startServer({ port = 3000, host = '0.0.0.0', dataDir, dmKey, network = 
         const t = templateFields(msg.tpl, sc, old || {});
         if (!t) return;
         t.id = id; t.owner = old ? old.owner : (u.isDM ? '' : u.name); t.by = old ? old.by : u.name;
+        if (old && old.lock) { // a spell's lasting area (#16)
+          t.lock = old.lock; t.spell = old.spell; if (old.movedAt) t.movedAt = old.movedAt;
+          const moved = old.x !== t.x || old.y !== t.y || old.size !== t.size || old.angle !== t.angle || old.shape !== t.shape;
+          if (moved && !u.isDM) {
+            const back = (why) => { send(ws, { type: 'template', sceneId: sc.id, tpl: old }); send(ws, { type: 'error', message: why }); };
+            if (old.lock === 'fixed') return back(`${old.spell} stays where it was cast. If it's in the wrong place, ask the DM to move it.`);
+            if (old.size !== t.size || old.shape !== t.shape) return back(`${old.spell}'s size can't change`);
+            const c = sc.combat && sc.combat.active && sc.combat.started ? sc.combat : null;
+            if (c) {
+              const cur = sc.tokens[c.turnId];
+              if (!cur || !cur.owner || !sameName(cur.owner, u.name)) return back(`Move ${old.spell} on your own turn (it takes your ${old.lock === 'bonus' ? 'bonus action' : 'action'})`);
+              const k = turnKey(sc); if (old.movedAt === k) return back(`${old.spell} has already moved this turn`);
+              t.movedAt = k;
+              post({ kind: 'chat', who: u.name, text: `🌀 ${u.name} uses ${old.lock === 'bonus' ? 'a bonus action' : 'an action'} to move ${old.spell}`, time: Date.now(), cast: true });
+            }
+          }
+        }
         sc.templates[id] = t;
         toScene(sc.id, { type: 'template', sceneId: sc.id, tpl: t });
         if (old && (old.x !== t.x || old.y !== t.y || old.size !== t.size || old.angle !== t.angle)) zonesAfterTemplate(sc, id, old);
@@ -2306,6 +2328,12 @@ function startServer({ port = 3000, host = '0.0.0.0', dataDir, dmKey, network = 
           toScene(sc.id, { type: 'prop', sceneId: sc.id, prop: chest });
           toScene(sc.id, { type: 'sfx', sceneId: sc.id, name: chest.open ? 'chest-open' : 'chest-close', x: cx + 0.5, y: cy + 0.5, fx: chest.open ? 'chest' : '' });
           save(); break;
+        }
+        // a torch, brazier, candle… the DM lights or puts out (#20)
+        const lamp = u.isDM && msg.lights && Object.values(sc.props).find((p) => p.x === cx && p.y === cy && VISION.PROP_LIGHT[p.kind]);
+        if (lamp && !Object.values(sc.props).some((p) => p.x === cx && p.y === cy && DOOR_KINDS.has(p.kind))) {
+          if (lamp.off) delete lamp.off; else lamp.off = true;
+          toScene(sc.id, { type: 'prop', sceneId: sc.id, prop: lamp }); scheduleVision(sc); save(); break;
         }
         const trap = u.isDM && Object.values(sc.props).find((p) => p.x === cx && p.y === cy && p.kind === 'trap');
         if (trap) { toScene(sc.id, { type: 'sfx', sceneId: sc.id, name: 'trap', x: cx + 0.5, y: cy + 0.5, fx: 'trap' }); break; }

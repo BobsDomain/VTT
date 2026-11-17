@@ -22,7 +22,7 @@ The app remembers the address and your name. **Table → Disconnect** (Ctrl+D) g
 
 - **Move your token** by dragging it. You can only move tokens the DM has given you. Scroll to zoom, right-drag to pan, Home fits the map to the screen.
 - **Roll dice** with the buttons on the right, or type a roll like `1d20+5`, `2d6+3` or `4d6kh3` and press Roll.
-- **Quick rolls:** add your attacks, saves and skills once under "My quick rolls" (e.g. name `Longsword hit`, roll `1d20+5`), copying the bonuses from your D&D Beyond sheet. Then click to roll. **Shift-click** for advantage, **Alt-click** for disadvantage.
+- **Quick rolls** (only until you bring in your character from D&D Beyond, which has every roll in My character): add your attacks, saves and skills once under "My quick rolls" (e.g. name `Longsword hit`, roll `1d20+5`), copying the bonuses from your D&D Beyond sheet. Then click to roll. **Shift-click** for advantage, **Alt-click** for disadvantage.
 - **Roll privately** sends the result only to the DM.
 - **Your dice roll on screen** for everyone to see. **My dice…** (under the dice buttons) picks their look, or uses a picture of your own. The DM's rolls stay secret.
 - **Spells:** with the **Spell** tool, pick an effect (fire, lightning, cold…) before placing a template and it goes off for everyone. Select one of yours and click **Cast** to set it off again.
@@ -38,7 +38,9 @@ You get your portrait, hit points, AC, speed, initiative and darkvision, and a b
 
 - **📍 Put my token on the map** places your token at the map's entrance, where the party arrives (or in the middle of your view if the DM hasn't set one). Click it again on another map to bring your character there, or after an update to refresh your token.
 - **Spells:** your slots are pips (click to tick one off or back). Click a spell to open it: **Cast** spends a slot (pick a higher one to upcast), **As a ritual** spends none, and the buttons roll its attack, damage or healing. **◎ Area** gets its template ready to drag onto the map. **☾ Short rest** and **⛺ Long rest** bring slots (and on a long rest, hit points) back.
-- **Healing, damage and protection go straight onto the map:** **Cast** a spell like Cure Wounds, Healing Word, Fireball or False Life, then click the tokens it's for (they get a dashed ring). **Me** adds your own token; **In my area** adds every token inside the area you placed. Click **Apply**: the slot is spent, the dice roll for everyone, and hit points change at once. Attack spells roll against each target's AC, save spells make each target save (half damage where the spell says so). `Esc` or **Cancel** stops without spending anything.
+- **Healing, damage and protection go straight onto the map:** **Cast** a spell like Cure Wounds, Healing Word, Fireball or False Life, then click the tokens it's for (they get a dashed ring, and their names show in the bar at the bottom). **Me** adds your own token; **Designated area** adds every token inside the area you placed. Click **Apply**: the slot is spent, the dice roll for everyone, and hit points change at once. Attack spells roll against each target's AC, save spells make each target save (half damage where the spell says so). `Esc` or **Cancel** stops without spending anything.
+- **Spells with an area** (Fireball, Burning Hands, Spike Growth, Web…): **Cast** first asks you to place the area, already at the spell's size. Click where its centre goes (a cone or line: drag the way it points from your token). Everyone inside is picked for you; click a token to add or drop one, then **Apply**. `Esc` cancels and nothing is spent.
+- **Areas that stay** (Spike Growth, Web, Moonbeam, Cloud of Daggers…) don't hurt anyone the moment they appear: they work on creatures that move in or start their turn there. Most can't be moved once cast (ask the DM if it landed in the wrong place). Moonbeam moves with your action and Flaming Sphere with your bonus action: in a fight, drag it on your own turn, once.
 - **Darts, rays and beams** (Magic Missile, Scorching Ray, Eldritch Blast): click a token once for every dart or ray you send at it, Shift+click to take one back.
 - **Spells with conditions** (Hold Person, Bless, Bane, Faerie Fire, Web…) put the condition on each target that fails its save. If you're concentrating and get hurt, Tabletop rolls your concentration save for you; if it fails, or you cast another concentration spell, the spell's conditions come off.
 - **When a spell holds you** (Hold Person, Web…), your token shows which spell and how it ends. End-of-turn saves roll for you when the DM moves the turn on; for Web or Entangle, click **🪢 Try to break free** on your token when you use your action for it.
@@ -46,6 +48,7 @@ You get your portrait, hit points, AC, speed, initiative and darkvision, and a b
 - **Spells that pick a damage type** (Chromatic Orb, Dragon's Breath) ask for it in the bar. Protections like Shield, Mage Armor, Stoneskin or Death Ward change your AC and damage as they should.
 - **Features that make a creature save** (Stunning Strike, Turn Undead…) are listed with their DC: click **🎯**, click the target, then **Apply**. **Grapple**, **Shove prone** and **Shove away** work the same way, but roll your Athletics against the target's Athletics or Acrobatics.
 - **Divine Smite** (paladins) is listed with your spells: after a melee hit, cast it on the target and pick the slot.
+- **Active effects** at the top of My character lists what's on you right now (Blessed, Restrained, Poisoned…), what put it there and how it ends. If you're concentrating, **Stop concentrating** (click it twice) ends the spell. Hovering over a token on the map also shows its conditions.
 - **Your saving throws roll for you**, with Bless, Bane, Exhaustion, your Advantages from D&D Beyond, a paladin's aura nearby, and conditions that change them. At 0 hit points your death saves roll at the start of your turn.
 - **Class features** such as Lay on Hands, Second Wind, Channel Divinity or Bardic Inspiration sit under **Class features**: click a pip to use one. **💛 Heal…** for Lay on Hands lets you pick who and how many hit points from your pool.
 - **Coins and inventory** show your money, what you carry (and in which bag) and your spells by level.
@@ -78,7 +81,7 @@ The bar on the left of the map:
 - **Ruler** (`R`): drag to measure in feet; `Space` adds a corner. Everyone sees your ruler.
 - **Spell** (`T`): spell templates. Pick cone, sphere, cube, line or cylinder in the bar at the bottom. A cone or line starts at your token: drag the way it points (hold **Shift** to start it somewhere else). For the others, drag from where the spell starts (or type the size and click). The squares it hits are shaded. Click one of yours to move it, drag its dot to aim or resize it, `Del` removes it. **Clear mine** removes all yours.
 - **Door** (`D`): click a door you can see to open or close it.
-- **Ping** (`P`): click to flash a spot for everyone ("over here!"). `Alt`+click pings with any tool.
+- **Ping** (`P`): click to flash a spot for everyone ("over here!"). `Alt`+click pings with any tool. A ping somewhere off your screen flashes a dotted line towards it, with a **📍 View ping** button that takes you there.
 
 `Esc` goes back to Move.
 

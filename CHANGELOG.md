@@ -2,6 +2,30 @@
 
 All notable changes to Tabletop. Newest first. Each version's section is used as the release notes on GitHub.
 
+## [1.23.0] - 2026-11-17
+
+Thirteen requests from the group, mostly about casting spells and keeping the side panels tidy.
+
+### Added
+- **Active effects (#9):** a new section at the top of My character lists what's on you (Blessed, Restrained…), which spell and who put it there, and how it ends. Hovering over a token on the map shows its conditions too.
+- **Stop concentrating (#11):** a button in Active effects ends the spell you're concentrating on (click twice to be sure).
+- **Spells place their area first (#13):** casting Fireball, Burning Hands, Spike Growth, Web and the like goes straight to placing the area, at the spell's own size; everyone inside is picked for you.
+- **Circle shape (#14):** a flat circle joins cone, sphere, cube, line and cylinder in the Spell tool.
+- **Quick monster buttons for the DM (#19):** a selected monster's attacks and actions sit in the token panel: use one on a target, or roll its to-hit and damage.
+- **Double-click doors and lights (#20):** with nothing else in hand, the DM double-clicks a door or chest to open or close it, and a torch, brazier, candle or lamp to light it or put it out.
+- **Off-screen pings (#21):** a ping you can't see flashes a dotted line towards it, with a **View ping** button that takes you there; both fade after 5 seconds.
+
+### Changed
+- **Who you're aiming at (#10):** the bar at the bottom names the tokens you've picked ("→ Gob, Gob 2").
+- **Designated area (#12):** the targeting button that picks everyone in your placed area was "In my area", which sounded like your own feet.
+- **Lasting areas don't hit as they appear (#15):** Spike Growth, Web, Moonbeam, Cloud of Daggers, Spirit Guardians and others now work only on creatures that move in or start their turn there, as the spells say. Wall of Fire, Grease, Insect Plague and Incendiary Cloud still hit what's there when they appear.
+- **Areas stay where they're cast (#16):** players can't drag a lasting area once it's cast; Moonbeam moves with an action and Flaming Sphere with a bonus action, once on their turn in a fight. The DM can always move one.
+- **No My quick rolls panel for players with a character (#17):** My character already has every roll.
+- **Conditions fold away (#18):** the DM's grid of condition icons is folded by default, with the token's current conditions listed next to the heading.
+
+### Fixed
+- **Grapple and Shove** show "Contest" instead of a DC, since 1.21 made them Athletics contests.
+
 ## [1.22.1] - 2026-11-16
 
 ### Added

@@ -30,7 +30,7 @@ export function createFx({ CELL }) {
   // cells: the squares the template covers; ox, oy: where it starts (squares); clip(g): the template's outline as a path
   function spell(kind, { cells, ox, oy, clip, shape, angle }) {
     const k = SPELLS[kind]; if (!k || !cells.length) return;
-    const centred = shape === 'sphere' || shape === 'cylinder';
+    const centred = shape === 'sphere' || shape === 'cylinder' || shape === 'circle';
     const pts = cells.map(([x, y]) => [(x + 0.5) * CELL, (y + 0.5) * CELL]);
     let cx = ox * CELL, cy = oy * CELL;
     if (shape === 'cube') { cx = pts.reduce((s, p) => s + p[0], 0) / pts.length; cy = pts.reduce((s, p) => s + p[1], 0) / pts.length; }
