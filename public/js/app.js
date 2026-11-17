@@ -3617,7 +3617,8 @@ function renderParty() {
   }
 }
 // 1.20: the table's default for what players see of monster HP (both copies of the setting stay in step)
-function syncMonHp() { document.querySelectorAll('.monHp').forEach((s) => { s.value = (table && table.monsterHp) || 'bar'; }); }
+function syncMonHp() { document.querySelectorAll('.monHp').forEach((s) => { s.value = (table && table.monsterHp) || 'bar'; }); document.querySelectorAll('.spellOk').forEach((c) => { c.checked = !!(table && table.spellApproval); }); }
+document.querySelectorAll('.spellOk').forEach((c) => c.onchange = () => { sendMsg({ type: 'setSpellApproval', on: c.checked }); toast(c.checked ? 'Players\' spells now wait for your OK' : 'Players\' spells happen straight away again'); });
 document.querySelectorAll('.monHp').forEach((s) => s.onchange = () => sendMsg({ type: 'setMonsterHp', value: s.value }));
 // ---------- 1.19: a question from the table (an opportunity attack, Counterspell), with buttons and a timer ----------
 function showPrompt(p) {

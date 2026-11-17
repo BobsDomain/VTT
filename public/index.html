@@ -278,6 +278,7 @@
   #eCondBox > summary::before { content:'▸'; color:var(--dim); }
   #eCondBox[open] > summary::before { content:'▾'; }
   #eCondBox[open] > summary { margin-bottom:6px; }
+  .spellok { margin:0 !important; font-size:12px; color:var(--dim); }
   .fxrow { display:flex; align-items:flex-start; gap:8px; padding:5px 0; border-bottom:1px solid var(--line); }
   .fxrow:last-child { border-bottom:none; }
   .fxrow .fxn { flex:1; min-width:0; }
@@ -764,11 +765,13 @@
         <div class="row dm-only"><button id="initAddSel" title="Add the selected token">+ Selected</button><button id="initAddAll" title="Add every token players can see, plus all monsters">+ All on map</button></div>
         <div class="row dm-only"><button id="initRollMon" title="Roll 1d20 + initiative bonus for every monster without a score">🎲 Roll for monsters</button><button id="initEnd" class="danger">End combat</button></div>
         <div class="row dm-only"><label class="monhp" title="What players see of monsters' and NPCs' health. A token's own &quot;Players see&quot; setting wins.">Players see monster HP <select class="monHp"><option value="bar">a health bar</option><option value="none">nothing</option><option value="numbers">the numbers</option></select></label></div>
+        <div class="row dm-only" style="margin:4px 0 0"><label class="check spellok" title="Players' spells wait for you before anything happens: let it happen, say it fails (Counterspell, an antimagic field…), or take it back"><input type="checkbox" class="spellOk"> Players' spells wait for my OK</label></div>
         <div class="row dm-only cbopts"><label class="check" title="Underwater: most melee weapons and ranged attacks have Disadvantage, ranged attacks miss past normal range, everything resists fire"><input type="checkbox" id="optWater"> Under water</label><label class="check" title="Optional rule (Dungeon Master's Guide): melee attacks have Advantage when an ally is on the opposite side of the target"><input type="checkbox" id="optFlank"> Flanking</label><button id="monRest" title="Daily uses, abilities that come back after a rest, Legendary Resistances">🌅 New day</button></div>
       </section>
       <section id="startSec" class="dm-only">
         <div class="row" style="margin:0"><button id="combatStart" title="Start initiative with every token on this map">⚔ Start combat</button></div>
         <div class="row" style="margin:6px 0 0"><label class="monhp" title="What players see of monsters' and NPCs' health. A token's own &quot;Players see&quot; setting wins.">Players see monster HP <select class="monHp"><option value="bar">a health bar</option><option value="none">nothing</option><option value="numbers">the numbers</option></select></label></div>
+        <div class="row dm-only" style="margin:4px 0 0"><label class="check spellok" title="Players' spells wait for you before anything happens: let it happen, say it fails (Counterspell, an antimagic field…), or take it back"><input type="checkbox" class="spellOk"> Players' spells wait for my OK</label></div>
       </section>
 
       <section class="off" id="editSec">

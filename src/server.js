@@ -14,7 +14,7 @@ const FX = require('../public/js/monsterfx.js');
 const SUMS = require('./summons');
 const ddb = require('./ddb');
 
-const VERSION = '1.23.0';
+const VERSION = '1.24.0';
 const PUBLIC = path.join(__dirname, '..', 'public');
 const VISION = require(path.join(PUBLIC, 'js', 'vision.js'));
 const CATALOG = JSON.parse(fs.readFileSync(path.join(PUBLIC, 'catalog.json'), 'utf8'));
@@ -814,9 +814,32 @@ function startServer({ port = 3000, host = '0.0.0.0', dataDir, dmKey, network = 
     }
     return out;
   }
+  // a spell with no effect on the map (Detect Magic, Fly…): who's casting what, for the DM's OK
+  function castNoEffect(u, sc, msg) {
+    const ch = charOf(u.name), sp = ch && (ch.spells || []).find((x) => x.name === msg.name); if (!sp) return null;
+    const me = Object.values(sc.tokens).find((t) => t.owner === u.name && t.ddb === ch.link) || null;
+    return { caster: me, name: sp.name, level: sp.level ? clamp(int(msg.slot, sp.level), sp.level, 9) : 0, who: ch.name.split(' ')[0] };
+  }
+  // #22: the DM lets the spell happen, says it fails (its slot is still used), or takes it back (nothing spent)
+  function holdForDm(ws, u, sc, msg, ci) {
+    const on = (Array.isArray(msg.targets) ? [...new Set(msg.targets)] : []).map((id) => sc.tokens[id]).filter(Boolean).map((t) => t.label || '?');
+    const what = `${ci.name}${ci.level ? ` (level ${ci.level})` : ''}${on.length ? ' on ' + on.slice(0, 6).join(', ') + (on.length > 6 ? ` and ${on.length - 6} more` : '') : ''}`;
+    send(ws, { type: 'toast', text: `⏳ ${ci.name}: waiting for the DM` });
+    ask('dm', { title: 'Allow this spell?', text: `${ci.who} is casting ${what}.`, buttons: [{ label: '✔ Let it happen', value: 'go' }, { label: '✋ It fails (slot used)', value: 'fail' }, { label: '↩ Take it back (nothing used)', value: 'back' }] }, (v) => {
+      const tell = (text) => post({ kind: 'chat', who: 'DM', to: [u.name, 'DM'], text, time: Date.now(), cast: true });
+      if (v === 'fail') {
+        let spent = '';
+        if (msg.type !== 'itemUse') { const ch = charOf(u.name), sp = ch && (ch.spells || []).find((x) => x.name === msg.name); const r = sp && msg.cast !== false ? spendSpell(ch, sp, msg) : null; if (r && r.at && sp.level) { spent = ` (its level ${r.at} slot is used up)`; sendCharTo(u.name); } }
+        tell(`✋ ${ci.who}'s ${ci.name} fails${spent}`); save(); return;
+      }
+      if (v === 'back') { tell(`↩ The DM takes back ${ci.who}'s ${ci.name}: nothing is used`); return; }
+      if (v !== 'go') tell(`⌛ The DM didn't answer, so ${ci.who}'s ${ci.name} goes ahead`);
+      handle(ws, { ...msg, _dmOk: true }); // and on to Counterspell, if anyone could
+    }, 120000);
+  }
   function holdForCounter(ws, sc, msg, ci, rs) {
     let open = rs.length, done = false; const ids = [];
-    const go = () => handle(ws, { ...msg, _cs: true });
+    const go = () => handle(ws, { ...msg, _cs: true, _dmOk: true });
     // a countered spell's slot is still spent (2014)
     const spendCountered = () => {
       if (msg.type !== 'spellEffect' || !ci.level) return '';
@@ -1788,7 +1811,7 @@ function startServer({ port = 3000, host = '0.0.0.0', dataDir, dmKey, network = 
   }
 
   // ---------- who may join ----------
-  const tableSettings = () => ({ monsterHp: state.monsterHp || 'bar', passcode: state.passcode, blocked: state.blocked, pins: Object.values(state.pins).map((p) => p.name) });
+  const tableSettings = () => ({ monsterHp: state.monsterHp || 'bar', spellApproval: !!state.spellApproval, passcode: state.passcode, blocked: state.blocked, pins: Object.values(state.pins).map((p) => p.name) });
 
   const wrongTries = new Map(); // address → { n, until }: slows down passcode guessing
   // Reveal (or cover) squares of fog, and send players what's now in view or gone from it.
@@ -1885,6 +1908,8 @@ function startServer({ port = 3000, host = '0.0.0.0', dataDir, dmKey, network = 
     ws.user = { name: 'Guest', isDM: false, joined: false };
     ws.on('message', (raw) => {
       let msg; try { msg = JSON.parse(raw); } catch { return; }
+      if (!msg || typeof msg !== 'object') return;
+      delete msg._cs; delete msg._dmOk; // only the server marks a cast as already asked about
       try { handle(ws, msg); } catch (e) { console.error('Message error:', e); }
     });
     ws.on('close', () => {
@@ -1935,6 +1960,11 @@ function startServer({ port = 3000, host = '0.0.0.0', dataDir, dmKey, network = 
     const tok = sc && msg.id ? sc.tokens[msg.id] : null;
     const inside = (x, y) => sc && x >= 0 && y >= 0 && x < sc.cols && y < sc.rows;
 
+    // #22: with the DM's OK switched on, a player's spell waits for the DM before anything happens
+    if (state.spellApproval && !u.isDM && !msg._dmOk && !msg._cs && sc && ['spellEffect', 'itemUse', 'charCast'].includes(msg.type)) {
+      const ci = castInfo(u, sc, msg) || (msg.type === 'charCast' ? castNoEffect(u, sc, msg) : null);
+      if (ci && askable('dm')) return holdForDm(ws, u, sc, msg, ci);
+    }
     // a spell being cast: anyone who could Counterspell it is asked first
     if (!msg._cs && sc && ['spellEffect', 'dmSpell', 'itemUse'].includes(msg.type)) {
       const ci = castInfo(u, sc, msg), rs = ci ? counterers(sc, ci.caster) : [];
@@ -2183,6 +2213,12 @@ function startServer({ port = 3000, host = '0.0.0.0', dataDir, dmKey, network = 
       }
 
       // ----- who may join (DM only) -----
+      case 'setSpellApproval': { // #22: players' spells wait for the DM's OK
+        if (!u.isDM) return;
+        state.spellApproval = !!msg.on;
+        toDMs({ type: 'table', table: tableSettings() }); save();
+        break;
+      }
       case 'setMonsterHp': { // what players see of monsters' health, unless a token says otherwise
         if (!u.isDM || !HP_SHOW.includes(msg.value)) return;
         state.monsterHp = msg.value;

@@ -119,6 +119,7 @@ When the DM shows you a handout (a letter, a picture, a clue), it pops up on you
 - **Attack a target:** click **🎯** next to a weapon in My character, then the target. Tabletop rolls against its AC and takes the damage off. Cast spells with **Cast** and click the targets.
 - **Actions:** select your token for **🛡 Dodge**, **🏃 Disengage**, **🤝 Help**, **🫥 Hide**, **💨 Dash** and **⏳ Ready**.
 - **Rests:** spend Hit Dice from My character after a **☾ Short rest**. A **⛺ Long rest** gives back half your Hit Dice.
+- **Waiting for the DM:** your DM can ask for spells to wait for their OK. Then, after you click **Apply**, you'll see "waiting for the DM": the spell happens when the DM lets it, or you're told it failed (a counterspell, say) or was taken back.
 - **Reactions:** when a foe leaves your reach, a card asks if you want to make an opportunity attack; when someone nearby casts a spell and you have Counterspell, a card asks if you want to counter it and with which slot. A slot of the spell's level or higher stops it; a lower one rolls your ability check for you. Click a button or let it time out.
 - **Surprised:** if the DM marks you surprised, you can't move or act on your first turn, and you have no reaction until that turn ends.
 - **Rules:** Tabletop follows the 2014 rules: the 2014 Player's Handbook spells, Exhaustion in six levels, and no Weapon Mastery.

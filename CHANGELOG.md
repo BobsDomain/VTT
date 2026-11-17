@@ -2,6 +2,17 @@
 
 All notable changes to Tabletop. Newest first. Each version's section is used as the release notes on GitHub.
 
+## [1.24.0] - 2026-11-17
+
+### Added
+- **Spells can wait for the DM's OK (#22):**
+  - **A switch for the DM:** **Players' spells wait for my OK**, under Start combat and under the initiative list.
+  - **The DM decides:** each spell, scroll or wand a player uses shows the DM who is casting what on whom. **Let it happen**, **It fails** (the slot is still used: a counterspell, an antimagic field…) or **Take it back** (nothing used).
+  - **Nobody stuck:** the player sees that it's waiting, and the spell goes ahead if the DM doesn't answer within two minutes.
+
+### Fixed
+- **Counterspell can't be skipped:** a player's app could have told the table not to ask about Counterspell. The table now ignores that.
+
 ## [1.23.0] - 2026-11-17
 
 Thirteen requests from the group, mostly about casting spells and keeping the side panels tidy.
