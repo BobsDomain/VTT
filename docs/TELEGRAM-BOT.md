@@ -43,12 +43,12 @@ The Worker creates the request issues on GitHub, so it needs its own key.
 1. On GitHub, click your picture → **Settings → Developer settings → Personal access tokens → Fine-grained tokens → Generate new token**.
 2. **Token name:** `Tabletop bot`.
 3. **Expiration:** the longest it offers. Put a reminder in your calendar to make a new one before then.
-4. **Resource owner:** **CPSDomain**.
+4. **Resource owner:** **BobsDomain**.
 5. **Repository access:** **Only select repositories → VTT**.
 6. **Permissions → Repository permissions:** **Issues: Read and write**, **Contents: Read-only**.
 7. Click **Generate token** and copy it (it starts with `github_pat_`).
 
-If CPSDomain is an organisation, it may have to allow the token first: in the organisation's **Settings → Personal access tokens**, approve the pending request.
+If BobsDomain is an organisation, it may have to allow the token first: in the organisation's **Settings → Personal access tokens**, approve the pending request.
 
 ### The Worker
 
@@ -63,7 +63,7 @@ If CPSDomain is an organisation, it may have to allow the token first: in the or
    | Secret | `GITHUB_TOKEN` | the `github_pat_…` token from above |
    | Secret | `WEBHOOK_SECRET` | any 30 or so random letters and numbers (no spaces); only Telegram and the Worker know it |
    | Text | `TELEGRAM_CHAT_ID` | `-944196680` |
-   | Text | `GITHUB_REPOSITORY` | `CPSDomain/VTT` |
+   | Text | `GITHUB_REPOSITORY` | `BobsDomain/VTT` |
 
    Click **Deploy** (or **Save and deploy**) when they're all in.
 5. Copy the Worker's address from its page. It looks like `https://tabletop-bot.yourname.workers.dev`.

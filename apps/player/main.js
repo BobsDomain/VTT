@@ -45,8 +45,8 @@ function create() {
     { label: 'Help', submenu: [
       { label: 'Check for updates…', click: () => checkForUpdates(win, { manual: true }) },
       { label: 'Download the player guide (PDF)…', click: () => saveGuide(win, 'player') },
-      { label: 'Newest player guide online (PDF)', click: () => shell.openExternal('https://github.com/CPSDomain/VTT/releases/latest/download/Tabletop-Player-Guide.pdf') },
-      { label: 'Player guide on GitHub', click: () => shell.openExternal('https://github.com/CPSDomain/VTT/blob/HEAD/docs/PLAYER-GUIDE.md') },
+      { label: 'Newest player guide online (PDF)', click: () => shell.openExternal('https://github.com/BobsDomain/VTT/releases/latest/download/Tabletop-Player-Guide.pdf') },
+      { label: 'Player guide on GitHub', click: () => shell.openExternal('https://github.com/BobsDomain/VTT/blob/HEAD/docs/PLAYER-GUIDE.md') },
       { type: 'separator' },
       { label: `About Tabletop Player ${require("../../package.json").version}`, enabled: false }
     ] }

@@ -9,7 +9,7 @@ from playwright.sync_api import sync_playwright
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 DOCS, OUT = ROOT / 'docs', ROOT / 'public' / 'guides'
 VERSION = json.loads((ROOT / 'package.json').read_text())['version']
-REPO = 'https://github.com/CPSDomain/VTT/blob/HEAD/docs/'
+REPO = 'https://github.com/BobsDomain/VTT/blob/HEAD/docs/'
 
 CSS = """
 @page { size: A4; margin: 18mm 16mm 20mm; }

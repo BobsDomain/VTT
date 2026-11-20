@@ -1,6 +1,6 @@
 {
   "name": "tabletop",
-  "version": "1.24.0",
+  "version": "1.24.1",
   "description": "Self-hosted virtual tabletop for D&D",
   "main": "apps/dm/main.js",
   "scripts": {
@@ -26,7 +26,7 @@
   "private": true,
   "repository": {
     "type": "git",
-    "url": "https://github.com/CPSDomain/VTT.git"
+    "url": "https://github.com/BobsDomain/VTT.git"
   },
-  "homepage": "https://github.com/CPSDomain/VTT"
+  "homepage": "https://github.com/BobsDomain/VTT"
 }

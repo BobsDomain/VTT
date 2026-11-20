@@ -1,13 +1,13 @@
 <p align="center"><img src="docs/images/banner.jpg" alt="Tabletop: a self-hosted virtual tabletop for D&D"></p>
 
 <p align="center">
-  <a href="https://github.com/CPSDomain/VTT/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/CPSDomain/VTT?label=latest%20release&color=e8390e"></a>
+  <a href="https://github.com/BobsDomain/VTT/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/BobsDomain/VTT?label=latest%20release&color=e8390e"></a>
   <img alt="Platform: Windows" src="https://img.shields.io/badge/platform-Windows-1f1f1f">
   <a href="CHANGELOG.md"><img alt="Changelog" src="https://img.shields.io/badge/changelog-what's%20new-ff6b35"></a>
 </p>
 
 <p align="center">
-  <b><a href="https://github.com/CPSDomain/VTT/releases/latest">⬇ Download the latest version</a></b> &nbsp;·&nbsp;
+  <b><a href="https://github.com/BobsDomain/VTT/releases/latest">⬇ Download the latest version</a></b> &nbsp;·&nbsp;
   <a href="docs/DM-GUIDE.md">DM guide</a> &nbsp;·&nbsp;
   <a href="docs/PLAYER-GUIDE.md">Player guide</a> &nbsp;·&nbsp;
   <a href="CHANGELOG.md">What's new</a> &nbsp;·&nbsp;
@@ -24,7 +24,7 @@ D&D Beyond stays the character manager; maps, tokens and dice live in Tabletop.
 
 ## Download
 
-Get the latest version from the **[Releases page](https://github.com/CPSDomain/VTT/releases/latest)**:
+Get the latest version from the **[Releases page](https://github.com/BobsDomain/VTT/releases/latest)**:
 
 | File | For |
 | --- | --- |
@@ -177,7 +177,7 @@ Full walkthroughs: **[DM guide](docs/DM-GUIDE.md)** · **[Player guide](docs/PLA
 Needs Node.js 18 or newer.
 
 ```bash
-git clone https://github.com/CPSDomain/VTT.git
+git clone https://github.com/BobsDomain/VTT.git
 cd VTT
 npm install
 npm run dm          # run the DM app from source

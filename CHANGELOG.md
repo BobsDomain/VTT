@@ -2,6 +2,11 @@
 
 All notable changes to Tabletop. Newest first. Each version's section is used as the release notes on GitHub.
 
+## [1.24.1] - 2026-11-20
+
+### Changed
+- **Tabletop has moved to github.com/BobsDomain/VTT:** downloads, updates, the guides in the Help menu, release announcements and the requests bot all point to the new address. Older versions still find their updates, because GitHub forwards the old address.
+
 ## [1.24.0] - 2026-11-17
 
 ### Added

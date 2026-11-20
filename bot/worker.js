@@ -6,7 +6,7 @@
 //   WEBHOOK_SECRET (secret)     any long random word; Telegram sends it with every message so strangers can't
 //   TELEGRAM_CHAT_ID (text)     the group's id, e.g. -944196680
 //   REQUESTS_PER_DAY (text)     optional: requests per person per day (default 10, 0 = no limit; group admins have none)
-//   GITHUB_REPOSITORY (text)    CPSDomain/VTT
+//   GITHUB_REPOSITORY (text)    BobsDomain/VTT
 // Then open https://<your worker>.workers.dev/setup?key=<WEBHOOK_SECRET> once: it points Telegram at the Worker.
 
 // ----- made by bot/build.mjs from core.mjs and worker.mjs: change those, then run node bot/build.mjs -----
@@ -193,7 +193,7 @@ function createBot({ telegramToken, githubToken, repo, chats, perDay }) {
 export default {
   async fetch(req, env, ctx) {
     const url = new URL(req.url);
-    const bot = () => createBot({ telegramToken: env.TELEGRAM_TOKEN, githubToken: env.GITHUB_TOKEN, repo: env.GITHUB_REPOSITORY || 'CPSDomain/VTT', chats: env.TELEGRAM_CHAT_ID, perDay: env.REQUESTS_PER_DAY });
+    const bot = () => createBot({ telegramToken: env.TELEGRAM_TOKEN, githubToken: env.GITHUB_TOKEN, repo: env.GITHUB_REPOSITORY || 'BobsDomain/VTT', chats: env.TELEGRAM_CHAT_ID, perDay: env.REQUESTS_PER_DAY });
     // one-time setup: Telegram sends messages here from now on, and the command list shows in the chat's menu
     if (req.method === 'GET' && url.pathname === '/setup') {
       if (!env.WEBHOOK_SECRET || url.searchParams.get('key') !== env.WEBHOOK_SECRET) return new Response('Add ?key= with your WEBHOOK_SECRET', { status: 403 });

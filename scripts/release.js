@@ -7,7 +7,7 @@ const path = require('path');
 const root = path.join(__dirname, '..');
 const pkg = require(path.join(root, 'package.json'));
 const { version } = pkg;
-// e.g. https://github.com/CPSDomain/VTT (from "repository" in package.json)
+// e.g. https://github.com/BobsDomain/VTT (from "repository" in package.json)
 const repo = String((pkg.repository && pkg.repository.url) || pkg.repository || '').replace(/^git\+/, '').replace(/\.git$/, '');
 const out = path.join(root, 'dist', 'release');
 const fail = (msg) => { console.error('\n  ✗ ' + msg + '\n'); process.exit(1); };
