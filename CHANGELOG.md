@@ -2,6 +2,11 @@
 
 All notable changes to Tabletop. Newest first. Each version's section is used as the release notes on GitHub.
 
+## [1.24.2] - 2026-11-20
+
+### Fixed
+- **Loading screens stay up longer (#23):** the Player app's start-up window shows for at least 2.5 seconds, instead of flashing past. The loading screen over the table also waits for the token art and fonts, and a second more, so pictures, sounds and dice finish loading behind it.
+
 ## [1.24.1] - 2026-11-20
 
 ### Added

@@ -2,7 +2,7 @@ import { CELL, TERRAINS, PROPS, PROP_CATS, DM_ONLY, texture, drawProp, swatch } 
 import { generate, SCHEMA, defaults } from './generate.js';
 import { interpret, EXAMPLES } from './prompt.js';
 import { readMapTool, layout as mapToolLayout, inArea as inMapToolArea } from './maptool.js';
-import { drawTokenArt, thumb, builtins, credit, whenArtLoads, conditions, drawCondition, conditionThumb, FRAME_NAMES } from './tokens.js';
+import { drawTokenArt, thumb, builtins, credit, whenArtLoads, conditions, drawCondition, conditionThumb, FRAME_NAMES, ready as tokenArtReady } from './tokens.js';
 import { createSound } from './audio.js';
 import { createWeather, TINT, MATCH } from './weather.js';
 import { createLighting } from './lighting.js';
@@ -41,12 +41,21 @@ function toast(text, ms = 3000) {
 const loadingText = (t) => { const e = $('ldStatus'); if (e) e.textContent = t; };
 function loadingDone() { const l = $('loading'); window.tabletopReady = true; if (!l || l.classList.contains('done')) return; l.classList.add('done'); setTimeout(() => { l.hidden = true; }, 500); }
 function tableLoaded() {
-  if (window.tabletopReady) return;
+  if (window.tabletopReady || tableLoaded.busy) return; tableLoaded.busy = true;
   loadingText('Drawing the map…');
   const t0 = performance.now();
-  const check = () => { // the map's pieces are drawn in the background: wait for them (at most 10 seconds)
-    const busy = chunkWant.length + chunkJobs.size;
-    if (!busy || performance.now() - t0 > 10000) { requestAnimationFrame(() => requestAnimationFrame(loadingDone)); return; }
+  // the token art, the fonts and the map's pieces first; then a little longer so pictures, sounds and dice finish
+  // loading behind it: at least 2.5 seconds from opening, and a second after the map is drawn (at most 12 seconds)
+  const extras = Promise.all([tokenArtReady.catch(() => {}), document.fonts ? document.fonts.ready.catch(() => {}) : null]);
+  let extrasDone = false; extras.then(() => { extrasDone = true; });
+  const check = () => {
+    const busy = chunkWant.length + chunkJobs.size, waited = performance.now() - t0;
+    if ((!busy && extrasDone) || waited > 12000) {
+      loadingText('Almost ready…');
+      const wait = Math.max(1000, 2500 - performance.now());
+      setTimeout(() => requestAnimationFrame(() => requestAnimationFrame(loadingDone)), wait);
+      return;
+    }
     setTimeout(check, 150);
   };
   setTimeout(check, 100);

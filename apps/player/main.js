@@ -20,7 +20,8 @@ function create() {
     webPreferences: { contextIsolation: true, sandbox: true, nodeIntegration: false, autoplayPolicy: 'no-user-gesture-required' }
   });
   let shown = false;
-  const showMain = () => { if (shown || !win || win.isDestroyed()) return; shown = true; win.show(); splash.close(); setTimeout(() => checkForUpdates(win), 4000); };
+  // the start-up window stays at least 2.5 seconds, then the connect screen takes over
+  const showMain = () => { if (shown || !win || win.isDestroyed()) return; shown = true; setTimeout(() => { if (win.isDestroyed()) return; win.show(); splash.close(0); setTimeout(() => checkForUpdates(win), 4000); }, Math.max(0, 2500 - splash.shownFor())); };
   win.once('ready-to-show', showMain);
   setTimeout(showMain, 8000); // slow or odd graphics: show it anyway
   win.on('page-title-updated', (e) => e.preventDefault());

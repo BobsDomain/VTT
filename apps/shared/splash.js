@@ -9,9 +9,10 @@ function openSplash(app, status) {
   win.loadFile(path.join(__dirname, 'splash.html'), { query: { app, status: status || 'Starting…', v: require('../../package.json').version } });
   win.once('ready-to-show', () => { if (!win.isDestroyed()) win.show(); });
   return {
+    shownFor: () => Date.now() - shownAt,
     status(text) { if (!win.isDestroyed()) win.webContents.executeJavaScript(`window.setStatus && window.setStatus(${JSON.stringify(String(text))})`).catch(() => {}); },
-    // close it, after at least a moment so it doesn't just flicker
-    close(min = 700) { const wait = Math.max(0, min - (Date.now() - shownAt)); setTimeout(() => { if (!win.isDestroyed()) win.close(); }, wait); }
+    // close it, after it has been up at least min milliseconds (2.5 s), so it doesn't just flicker
+    close(min = 2500) { const wait = Math.max(0, min - (Date.now() - shownAt)); setTimeout(() => { if (!win.isDestroyed()) win.close(); }, wait); }
   };
 }
 

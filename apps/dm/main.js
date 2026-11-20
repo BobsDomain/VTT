@@ -90,7 +90,7 @@ async function boot() {
   splash.status('Loading your maps…');
   // the table shows when its map is drawn; the loading screen stays until then (#23)
   let shown = false;
-  const showMain = () => { if (shown || !win || win.isDestroyed()) return; shown = true; win.maximize(); win.show(); splash.close(); setTimeout(() => checkForUpdates(win), 4000); };
+  const showMain = () => { if (shown || !win || win.isDestroyed()) return; shown = true; win.maximize(); win.show(); splash.close(0); setTimeout(() => checkForUpdates(win), 4000); };
   win.webContents.once('did-finish-load', () => { splash.status('Drawing the map…'); whenTableReady(win, showMain); });
   setTimeout(showMain, 25000); // slow or odd graphics: show it anyway
   win.on('page-title-updated', (e) => e.preventDefault());
