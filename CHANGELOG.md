@@ -2,6 +2,11 @@
 
 All notable changes to Tabletop. Newest first. Each version's section is used as the release notes on GitHub.
 
+## [1.24.3] - 2026-11-20
+
+### Added
+- **Hide a side panel completely (#24):** **✕** on any panel, docked or floating, hides it. **🗂 Panels** on the bar left of the map shows how many are hidden and brings them back, one by one or all at once. It's remembered on each PC.
+
 ## [1.24.2] - 2026-11-20
 
 ### Fixed

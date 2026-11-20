@@ -2,20 +2,21 @@
 // and ⠿ (drag to reorder it in the sidebar). A floating window can be moved, resized, docked back with ⇲, or dropped
 // back onto the sidebar where you want it. Layout is remembered on this PC, separately for the DM and for players.
 // The sections themselves are moved, not copied, so everything in them keeps working.
+// 1.24.3 (#24): ✕ hides a panel completely; 🗂 Panels on the bar left of the map brings hidden ones back.
 const PANELS = [
   ['initSec', 'Initiative'], ['startSec', 'Combat'], ['editSec', 'Selected token'], ['partySec', 'Party'], ['handoutSec', 'Handouts'],
   ['itemSec', 'Items'], ['charSec', 'My character'], ['diceSec', 'Dice'], ['macroSec', 'My quick rolls'], ['addSec', 'Add tokens'], ['chatSec', 'Chat and rolls']
 ];
 const NAME = Object.fromEntries(PANELS);
-let key = '', layout = { order: [], float: {} }, zTop = 30, started = false;
+let key = '', layout = { order: [], float: {}, hidden: [] }, zTop = 30, started = false, isDM = false;
 const $ = (id) => document.getElementById(id);
 const scroll = () => document.querySelector('aside .scroll');
-const load = () => { try { const v = JSON.parse(localStorage.getItem(key) || 'null'); if (v && typeof v === 'object') layout = { order: Array.isArray(v.order) ? v.order : [], float: v.float && typeof v.float === 'object' ? v.float : {} }; } catch { /* no storage */ } };
+const load = () => { try { const v = JSON.parse(localStorage.getItem(key) || 'null'); if (v && typeof v === 'object') layout = { hidden: Array.isArray(v.hidden) ? v.hidden : [], order: Array.isArray(v.order) ? v.order : [], float: v.float && typeof v.float === 'object' ? v.float : {} }; } catch { /* no storage */ } };
 const store = () => { try { localStorage.setItem(key, JSON.stringify(layout)); } catch { /* no storage */ } };
 const docked = () => [...scroll().children].filter((e) => e.tagName === 'SECTION' && e.id);
 
 // is this section meant to be showing right now (combat on, a token selected, the DM's own panels)?
-const showing = (sec) => !sec.hidden && getComputedStyle(sec).display !== 'none';
+const showing = (sec) => !sec.hidden && !sec.classList.contains('userhidden') && getComputedStyle(sec).display !== 'none';
 const wins = new Map(); // section id → its floating window
 function syncWin(id) {
   const w = wins.get(id), sec = $(id); if (!w || !sec) return;
@@ -35,8 +36,42 @@ function buttons(sec) {
   }
   const pop = document.createElement('button'); pop.textContent = '⧉'; pop.title = 'Pop out into its own window over the map';
   pop.onclick = (e) => { e.stopPropagation(); const r = sec.getBoundingClientRect(); floatOut(sec.id, { x: Math.max(8, r.left - 340), y: Math.max(60, r.top), w: 300, h: Math.min(520, Math.max(160, r.height + 40)) }); };
-  box.append(pop);
+  box.append(pop, hideButton(sec.id));
   sec.prepend(box);
+}
+
+// ----- hiding a panel completely (#24) -----
+function hideButton(id) {
+  const b = document.createElement('button'); b.className = 'panhide'; b.textContent = '✕'; b.title = 'Hide this panel (🗂 Panels, on the bar left of the map, brings it back)';
+  b.onclick = (e) => { e.stopPropagation(); setHidden(id, true); };
+  return b;
+}
+function setHidden(id, on) {
+  layout.hidden = layout.hidden.filter((x) => x !== id); if (on) layout.hidden.push(id);
+  store(); applyHidden(); renderMenu();
+}
+function applyHidden() {
+  for (const [id] of PANELS) { const s = $(id); if (s) s.classList.toggle('userhidden', layout.hidden.includes(id)); if (wins.has(id)) syncWin(id); }
+  const n = layout.hidden.filter((id) => mine(id)).length, badge = $('panelsBadge'), btn = $('panelsBtn');
+  if (badge) badge.textContent = n ? String(n) : '';
+  if (btn) btn.classList.toggle('has', n > 0);
+}
+// the panels this person has: the DM's own ones, or a player's
+const mine = (id) => { const s = $(id); if (!s) return false; if (isDM) return id !== 'charSec' && id !== 'macroSec'; return !s.classList.contains('dm-only'); };
+function renderMenu() {
+  const box = $('panelsList'); if (!box) return; box.innerHTML = '';
+  for (const [id, name] of PANELS) {
+    if (!mine(id)) continue;
+    const row = document.createElement('label'); row.className = 'check';
+    const cb = document.createElement('input'); cb.type = 'checkbox'; cb.checked = !layout.hidden.includes(id); cb.onchange = () => setHidden(id, !cb.checked);
+    row.append(cb, document.createTextNode(' ' + name)); box.append(row);
+  }
+}
+function wireMenu() {
+  const btn = $('panelsBtn'), pop = $('panelsPop'); if (!btn || !pop) return;
+  btn.onclick = (e) => { e.stopPropagation(); renderMenu(); pop.hidden = !pop.hidden; if (!pop.hidden) { const r = btn.getBoundingClientRect(); pop.style.left = (r.right + 8) + 'px'; pop.style.top = Math.max(8, Math.min(r.top, window.innerHeight - pop.offsetHeight - 8)) + 'px'; } };
+  document.addEventListener('pointerdown', (e) => { if (!pop.hidden && !pop.contains(e.target) && e.target !== btn && !btn.contains(e.target)) pop.hidden = true; });
+  const all = $('panelsShowAll'); if (all) all.onclick = () => { layout.hidden = []; store(); applyHidden(); renderMenu(); };
 }
 
 // ----- reordering in the sidebar by dragging ⠿ -----
@@ -79,7 +114,7 @@ function floatOut(id, pos, quiet) {
   const title = document.createElement('b'); title.textContent = NAME[id] || id;
   const dock = document.createElement('button'); dock.textContent = '⇲'; dock.title = 'Put it back in the sidebar (or drag this bar onto the sidebar)';
   dock.onclick = () => dockIn(id);
-  bar.append(title, dock);
+  bar.append(title, dock, hideButton(id));
   const body = document.createElement('div'); body.className = 'fwbody';
   if (id === 'chatSec') sec.dataset.home = 'aside'; // the chat lives below the scrolling panels
   body.append(sec); w.append(bar, body); $('floats').append(w);
@@ -128,20 +163,21 @@ function dockIn(id, before) {
 }
 
 // put everything where it was last time
-export function initPanels(isDM) {
+export function initPanels(dm) {
   if (started || !scroll() || !$('floats')) return;
-  started = true; key = 'tt-panels-' + (isDM ? 'dm' : 'player'); load();
+  isDM = !!dm; started = true; key = 'tt-panels-' + (isDM ? 'dm' : 'player'); load();
   for (const [id] of PANELS) { const s = $(id); if (s) { buttons(s); if (id !== 'chatSec') wireDrag(s); } }
   wireSidebar();
   const sc = scroll();
   for (const id of layout.order) { const s = $(id); if (s && s.parentElement === sc) sc.append(s); }
   for (const [id, p] of Object.entries(layout.float)) floatOut(id, p, true);
+  wireMenu(); applyHidden();
   // a tidy-up when the window size changes: keep floating windows on screen
   window.addEventListener('resize', () => { for (const [id, w] of wins) { w.style.left = Math.min(w.offsetLeft, window.innerWidth - 120) + 'px'; w.style.top = Math.min(w.offsetTop, window.innerHeight - 60) + 'px'; remember(id); } });
 }
 // everything back in the sidebar, in the usual order
 export function resetPanels() {
   for (const id of [...wins.keys()]) dockIn(id);
-  layout = { order: [], float: {} }; store();
+  layout = { order: [], float: {}, hidden: [] }; store(); applyHidden(); renderMenu();
   const sc = scroll(); for (const [id] of PANELS) { const s = $(id); if (s && s.parentElement === sc) sc.append(s); }
 }

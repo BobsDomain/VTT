@@ -311,8 +311,9 @@ Every panel on the right (Initiative, Party, Selected token, Dice, Items, Handou
 - **⧉** pops it out into its own window. Drag the window by its title bar and resize it from the bottom-right corner.
 - **⇲** puts it back in the sidebar, where it was. You can also drag the window's title bar onto the sidebar, and it docks wherever you let go.
 - **⠿** (drag it) moves a panel up or down the sidebar.
+- **✕** hides a panel completely, docked or floating. **🗂 Panels**, on the bar to the left of the map, shows how many are hidden: click it and tick a panel to bring it back, or **Show them all**.
 
-A floating panel only shows when it has something to show: the initiative during a fight, the selected token when one is selected. The layout is remembered on this PC. **View → Put all panels back in the sidebar** resets it.
+A floating panel only shows when it has something to show: the initiative during a fight, the selected token when one is selected. The layout is remembered on this PC. **View → Put all panels back in the sidebar** resets it, hidden ones included.
 
 ## Table tools
 

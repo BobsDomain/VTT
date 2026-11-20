@@ -263,6 +263,14 @@
   #gate input { width:100%; }
   #join { position:fixed; inset:0; background:rgba(0,0,0,.82); display:flex; align-items:center; justify-content:center; z-index:20; }
   #join[hidden] { display:none; }
+  .userhidden { display:none !important; }
+  #panelsBtn { position:relative; }
+  #panelsBtn i { position:absolute; top:2px; right:4px; min-width:14px; height:14px; border-radius:7px; background:var(--accent); color:#fff; font-size:10px; font-style:normal; line-height:14px; padding:0 3px; }
+  #panelsBtn i:empty { display:none; }
+  #panelsPop { position:fixed; z-index:45; width:220px; display:flex; flex-direction:column; }
+  #panelsPop[hidden] { display:none; }
+  #panelsList { display:flex; flex-direction:column; gap:2px; }
+  #panelsList label { margin:0; }
   #loading { position:fixed; inset:0; z-index:35; background:#121212; display:flex; align-items:center; justify-content:center; transition:opacity .45s; }
   #loading.done { opacity:0; pointer-events:none; }
   #loading[hidden] { display:none; }
@@ -740,6 +748,13 @@
       <button data-tt="door" title="Door: click a door to open or close it (D)"><span>🚪</span>Door</button>
       <button data-tt="ping" title="Ping: click to flash a spot for everyone (P, or Alt+click with any tool). DM: Shift+click to turn everyone's view there (look here)"><span>📍</span>Ping</button>
       <button data-tt="label" class="dm-only" title="Labels and DM notes on the map (L)"><span>🏷️</span>Label</button>
+      <button id="panelsBtn" title="Panels: show the side panels you've hidden (✕ on a panel hides it)"><span>🗂</span>Panels<i id="panelsBadge"></i></button>
+    </div>
+    <div id="panelsPop" class="pop" hidden>
+      <div class="hpl" style="margin:0 0 6px">Panels</div>
+      <div id="panelsList"></div>
+      <div class="row" style="margin:8px 0 0"><button id="panelsShowAll">Show them all</button></div>
+      <div class="hint" style="margin:6px 0 0">Untick a panel to hide it, tick it to bring it back. ✕ on a panel hides it too.</div>
     </div>
     <div id="tplPop" class="pop" hidden>
       <div class="tplrow">
