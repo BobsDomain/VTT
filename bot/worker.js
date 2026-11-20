@@ -84,7 +84,13 @@ function createBot({ telegramToken, githubToken, repo, chats, perDay }) {
     for (const c of CHATS) { try { const s = await tg('getChatMember', { chat_id: c, user_id: u.id }); if (['creator', 'administrator'].includes(s.status)) return true; } catch { /* not there */ } }
     return false;
   }
-  async function onRequest(m, text) {
+  // more detail for an existing request: a comment on its issue, so nothing said in the group is lost
+  async function addDetail(i, u, text) {
+    await gh('POST', `/repos/${repo}/issues/${i.number}/comments`, { body: `${text}\n\n---\nMore from **${who(u)}${u.username ? ` (@${u.username})` : ''}** in Telegram` });
+  }
+  // what the new text says that the request doesn't already: its words that aren't in the issue's title or text
+  const newWords = (text, i) => { const b = words(i.title + ' ' + (i.body || '')); return [...words(text)].filter((w) => !b.has(w)); };
+  async function onRequest(m, text, opts = {}) {
     const u = m.from;
     if (text.length < MIN_LEN) return reply(m, `Tell me a bit more: <code>/request</code> and the idea, at least ${MIN_LEN} characters. For example <i>/request Let players draw on the map</i>`);
     const all = await requests();
@@ -92,15 +98,25 @@ function createBot({ telegramToken, githubToken, repo, chats, perDay }) {
     if (all.some((i) => (meta(i.body) || {}).msg === tag)) return; // handled already (Telegram sent it twice)
     const today = new Date().toISOString().slice(0, 10);
     if (PER_DAY > 0 && all.filter((i) => (meta(i.body) || {}).user === u.id && i.created_at.slice(0, 10) === today).length >= PER_DAY && !(await isAdmin(u))) return reply(m, `That's ${PER_DAY} requests from you today, thanks! Send the next one tomorrow.`);
-    const dup = similar(text, all.filter((i) => i.state === 'open'));
+    const dup = opts.force ? null : similar(text, all.filter((i) => i.state === 'open'));
     if (dup) {
-      const added = await vote(dup, u);
-      return reply(m, `That looks like <a href="${dup.html_url}">#${dup.number}: ${esc(dup.title)}</a> (${statusOf(dup)}). ${added ? 'I added your vote to it.' : 'You already voted for it.'} If it's different, add more detail and send it again.`);
+      const added = await vote(dup, u), extra = newWords(text, dup).length >= 2; // it says something the request doesn't
+      if (extra) await addDetail(dup, u, text);
+      return reply(m, `That looks like <a href="${dup.html_url}">#${dup.number}: ${esc(dup.title)}</a> (${statusOf(dup)}). ${added ? 'I added your vote to it' : 'You already voted for it'}${extra ? ', and your extra details as a note on it' : ''}.\nIf it's a different request, send it with <code>/newrequest</code> instead and I'll add it on its own.`);
     }
+    const related = opts.force ? similar(text, all.filter((i) => i.state === 'open')) : null;
     const title = (text.charAt(0).toUpperCase() + text.slice(1)).replace(/\s+/g, ' ').slice(0, 90);
-    const issue = await gh('POST', `/repos/${repo}/issues`, { title, labels: [LABEL], body: bodyFor(text, who(u) + (u.username ? ` (@${u.username})` : ''), { user: u.id, msg: tag, voters: [u.id] }) });
+    const issue = await gh('POST', `/repos/${repo}/issues`, { title, labels: [LABEL], body: bodyFor(text + (related ? `\n\nRelated to #${related.number}.` : ''), who(u) + (u.username ? ` (@${u.username})` : ''), { user: u.id, msg: tag, voters: [u.id] }) });
     issueCache.push(issue);
     return reply(m, `Thanks ${esc(u.first_name || '')}! Added as <a href="${issue.html_url}">#${issue.number}</a>. It's on the requests list now, and others can vote with <code>/upvote ${issue.number}</code>.`);
+  }
+  // /add 23 more detail: a note on request #23
+  async function onAdd(m, n, text) {
+    const i = (await requests()).find((x) => x.number === n);
+    if (!i) return reply(m, `Which request? For example <code>/add 23 it should also work for players</code>. <code>/requests</code> lists them.`);
+    if (text.length < MIN_LEN) return reply(m, `Tell me a bit more: <code>/add ${n}</code> and the details, at least ${MIN_LEN} characters.`);
+    await addDetail(i, m.from, text);
+    return reply(m, `Added your details to <a href="${i.html_url}">#${i.number}: ${esc(i.title)}</a>.`);
   }
   async function onList(m) {
     const open = (await requests('open')).map((i) => ({ i, v: votes(i) })).sort((a, b) => b.v - a.v).slice(0, 12);
@@ -134,7 +150,7 @@ function createBot({ telegramToken, githubToken, repo, chats, perDay }) {
       (pg ? `📖 <a href="${pg.browser_download_url}">Player guide (PDF)</a>\n` : '') +
       `\nAll files, and the no-install zips: ${r.html_url}\nFirst run: click <b>More info → Run anyway</b> if Windows asks.`);
   }
-  const HELP = '<b>Tabletop bot</b>\n/request <i>your idea</i>: ask for a feature\n/requests: what\'s been asked\n/upvote <i>12</i>: vote for #12\n/status <i>12</i>: where #12 stands\n/new: what\'s in the latest version\n/download: where to get the apps';
+  const HELP = '<b>Tabletop bot</b>\n/request <i>your idea</i>: ask for a feature\n/newrequest <i>your idea</i>: a separate request, even if it looks like one already asked\n/add <i>12 more detail</i>: add to request #12\n/requests: what\'s been asked\n/upvote <i>12</i>: vote for #12\n/status <i>12</i>: where #12 stands\n/new: what\'s in the latest version\n/download: where to get the apps';
 
   // ----- one message -----
   async function allowed(m) {
@@ -159,6 +175,8 @@ function createBot({ telegramToken, githubToken, repo, chats, perDay }) {
       if (cmd && (!cmd[2] || cmd[2].toLowerCase() === me.username.toLowerCase())) {
         const [, c, , rest] = cmd, n = parseInt((rest.match(/\d+/) || [])[0], 10);
         if (c === 'request' || c === 'idea') await onRequest(m, rest.trim());
+        else if (c === 'newrequest' || c === 'new_request') await onRequest(m, rest.trim(), { force: true }); // a separate request, even if it looks like one we have
+        else if (c === 'add' || c === 'details') await onAdd(m, n, rest.replace(/^\s*#?\d+\s*/, '').trim());
         else if (c === 'requests' || c === 'ideas') await onList(m);
         else if (c === 'status') await onStatus(m, n, false);
         else if (c === 'upvote' || c === 'vote') await onStatus(m, n, true);
@@ -202,7 +220,8 @@ export default {
         await b.tg('setWebhook', { url: `${url.origin}/telegram`, secret_token: env.WEBHOOK_SECRET, allowed_updates: ['message'], drop_pending_updates: false });
         out.push('✔ Telegram now sends messages to this Worker');
         await b.tg('setMyCommands', { commands: [
-          { command: 'request', description: 'Ask for a feature' }, { command: 'requests', description: "What's been asked" },
+          { command: 'request', description: 'Ask for a feature' }, { command: 'newrequest', description: 'A separate request, even if it looks like one we have' },
+          { command: 'add', description: 'More detail for a request (its number, then the details)' }, { command: 'requests', description: "What's been asked" },
           { command: 'upvote', description: 'Vote for a request (its number)' }, { command: 'status', description: 'Where a request stands (its number)' },
           { command: 'new', description: "What's in the latest version" }, { command: 'download', description: 'Where to get the apps' }, { command: 'help', description: 'What I can do' }] });
         out.push('✔ Command list set');

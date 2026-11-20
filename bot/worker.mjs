@@ -22,7 +22,8 @@ export default {
         await b.tg('setWebhook', { url: `${url.origin}/telegram`, secret_token: env.WEBHOOK_SECRET, allowed_updates: ['message'], drop_pending_updates: false });
         out.push('✔ Telegram now sends messages to this Worker');
         await b.tg('setMyCommands', { commands: [
-          { command: 'request', description: 'Ask for a feature' }, { command: 'requests', description: "What's been asked" },
+          { command: 'request', description: 'Ask for a feature' }, { command: 'newrequest', description: 'A separate request, even if it looks like one we have' },
+          { command: 'add', description: 'More detail for a request (its number, then the details)' }, { command: 'requests', description: "What's been asked" },
           { command: 'upvote', description: 'Vote for a request (its number)' }, { command: 'status', description: 'Where a request stands (its number)' },
           { command: 'new', description: "What's in the latest version" }, { command: 'download', description: 'Where to get the apps' }, { command: 'help', description: 'What I can do' }] });
         out.push('✔ Command list set');

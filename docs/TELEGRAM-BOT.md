@@ -8,7 +8,9 @@ It runs on **Cloudflare Workers** (free), so it answers within a second or two a
 
 | Type | What happens |
 | --- | --- |
-| `/request Let players draw on the map` | A new request (#42), or a vote for an open one that looks the same |
+| `/request Let players draw on the map` | A new request (#42), or a vote for an open one that looks the same. If it adds details the open one doesn't have, they're added to it as a note |
+| `/newrequest Let players draw on the map with colours` | A new request even if it looks like one already asked (it says which one it's related to) |
+| `/add 42 It should work for the DM too` | Adds details to #42 as a note |
 | `/requests` | The open requests, most votes first |
 | `/upvote 42` | A vote for #42 (one each) |
 | `/status 42` | Requested, Planned, Done or Closed |
