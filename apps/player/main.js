@@ -3,6 +3,7 @@ const { app, BrowserWindow, Menu, shell } = require('electron');
 const path = require('path');
 const { checkForUpdates } = require('../shared/update');
 const { saveGuide } = require('../shared/guides');
+const { openSplash } = require('../shared/splash');
 
 process.on('uncaughtException', (e) => { try { require('electron').dialog.showErrorBox('Tabletop hit a problem', String((e && e.stack) || e)); } catch { /* not ready yet */ } });
 app.setName('Tabletop Player'); // own settings folder and single-instance lock, separate from the DM app
@@ -11,14 +12,17 @@ let win = null;
 const connectPage = path.join(__dirname, 'connect.html');
 
 function create() {
+  const splash = openSplash('Player', 'Starting…'); // the loading screen (#23); the table has its own while it loads
   win = new BrowserWindow({
     width: 1400, height: 880, minWidth: 900, minHeight: 600,
     title: 'Tabletop', backgroundColor: '#121212', show: false,
     icon: path.join(__dirname, '..', '..', 'build', 'icon.png'),
     webPreferences: { contextIsolation: true, sandbox: true, nodeIntegration: false, autoplayPolicy: 'no-user-gesture-required' }
   });
-  win.once('ready-to-show', () => { win.show(); setTimeout(() => checkForUpdates(win), 4000); });
-  setTimeout(() => { if (win && !win.isDestroyed() && !win.isVisible()) { win.show(); } }, 6000); // slow or odd graphics: show it anyway
+  let shown = false;
+  const showMain = () => { if (shown || !win || win.isDestroyed()) return; shown = true; win.show(); splash.close(); setTimeout(() => checkForUpdates(win), 4000); };
+  win.once('ready-to-show', showMain);
+  setTimeout(showMain, 8000); // slow or odd graphics: show it anyway
   win.on('page-title-updated', (e) => e.preventDefault());
   // Links that open new windows (e.g. a D&D Beyond sheet later) go to the normal browser.
   win.webContents.setWindowOpenHandler(({ url }) => { if (/^https?:/.test(url)) shell.openExternal(url); return { action: 'deny' }; });

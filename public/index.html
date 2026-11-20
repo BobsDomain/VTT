@@ -263,6 +263,18 @@
   #gate input { width:100%; }
   #join { position:fixed; inset:0; background:rgba(0,0,0,.82); display:flex; align-items:center; justify-content:center; z-index:20; }
   #join[hidden] { display:none; }
+  #loading { position:fixed; inset:0; z-index:35; background:#121212; display:flex; align-items:center; justify-content:center; transition:opacity .45s; }
+  #loading.done { opacity:0; pointer-events:none; }
+  #loading[hidden] { display:none; }
+  #loading .ld { display:flex; flex-direction:column; align-items:center; gap:14px; }
+  .ldd20 { width:84px; height:84px; animation:ldspin 2.4s cubic-bezier(.5,.1,.5,.9) infinite; filter:drop-shadow(0 0 12px rgba(232,57,14,.35)); }
+  @keyframes ldspin { 0% { transform:rotate(0) scale(1); } 50% { transform:rotate(180deg) scale(.92); } 100% { transform:rotate(360deg) scale(1); } }
+  .ldword { font-weight:800; letter-spacing:.32em; font-size:22px; margin-left:.32em; color:#e7e5e4; }
+  .ldword span { color:#e8390e; }
+  .ldbar { width:200px; height:3px; background:#2a2a2a; border-radius:2px; overflow:hidden; }
+  .ldbar i { display:block; width:40%; height:100%; background:#e8390e; border-radius:2px; animation:ldslide 1.3s ease-in-out infinite; }
+  @keyframes ldslide { 0% { transform:translateX(-100%); } 100% { transform:translateX(250%); } }
+  #ldStatus { font-size:13px; color:#a8a29e; }
   .pingline { position:fixed; pointer-events:none; z-index:30; transition:opacity .8s; }
   .pingline line { stroke-width:3; stroke-dasharray:6 7; animation:pingdash 0.6s linear infinite, pingflash 0.5s ease-in-out 3 alternate; }
   @keyframes pingdash { to { stroke-dashoffset:-13; } }
@@ -1045,6 +1057,12 @@
   <input id="gateCode" placeholder="Passcode" maxlength="40" autocomplete="off" spellcheck="false">
   <div class="row"><button id="gateGo" class="primary">Join</button></div>
 </form></div>
+<div id="loading"><div class="ld">
+  <svg class="ldd20" viewBox="0 0 100 100" aria-hidden="true"><polygon points="50,4 90,27 90,73 50,96 10,73 10,27" fill="#1c1917" stroke="#e8390e" stroke-width="3" stroke-linejoin="round"/><g fill="none" stroke="#e8390e" stroke-width="2" stroke-linejoin="round" opacity=".75"><polygon points="50,28 72,64 28,64"/><path d="M50,4 50,28 M90,27 50,28 M10,27 50,28 M90,27 72,64 M90,73 72,64 M10,27 28,64 M10,73 28,64 M50,96 72,64 M50,96 28,64"/></g><text x="50" y="57" text-anchor="middle" font-size="18" font-weight="800" fill="#e7e5e4">20</text></svg>
+  <div class="ldword">TABLE<span>TOP</span></div>
+  <div class="ldbar"><i></i></div>
+  <div id="ldStatus">Joining the table…</div>
+</div></div>
 <div id="join" hidden><form id="joinForm">
   <h2>Join the table</h2>
   <input id="name" placeholder="Your name (same as your character)" required autofocus maxlength="24">

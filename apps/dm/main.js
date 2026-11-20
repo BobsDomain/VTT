@@ -6,6 +6,7 @@ const crypto = require('crypto');
 const { startServer } = require('../../src/server');
 const { checkForUpdates } = require('../shared/update');
 const { saveGuide } = require('../shared/guides');
+const { openSplash, whenTableReady } = require('../shared/splash');
 const { openPort } = require('../../src/upnp');
 
 process.on('uncaughtException', (e) => { try { require('electron').dialog.showErrorBox('Tabletop hit a problem', String((e && e.stack) || e)); } catch { /* not ready yet */ } });
@@ -65,6 +66,7 @@ async function moveTo(p) {
 }
 
 async function boot() {
+  const splash = openSplash('Dungeon Master', 'Starting the table…'); // the loading screen (#23)
   const cfg = readConfig();
   // Try the chosen port, then the next few if something else is using it.
   let lastErr;
@@ -72,6 +74,7 @@ async function boot() {
     try { server = await start(p); } catch (e) { lastErr = e; if (e.code !== 'EADDRINUSE') break; }
   }
   if (!server) {
+    splash.close(0);
     dialog.showErrorBox('Tabletop DM could not start', `The game server failed to start: ${lastErr && lastErr.message}`);
     return app.quit();
   }
@@ -84,8 +87,12 @@ async function boot() {
     icon: path.join(__dirname, '..', '..', 'build', 'icon.png'),
     webPreferences: { contextIsolation: true, sandbox: true, nodeIntegration: false, autoplayPolicy: 'no-user-gesture-required' }
   });
-  win.once('ready-to-show', () => { win.maximize(); win.show(); setTimeout(() => checkForUpdates(win), 4000); });
-  setTimeout(() => { if (win && !win.isDestroyed() && !win.isVisible()) { win.maximize(); win.show(); } }, 6000); // slow or odd graphics: show it anyway
+  splash.status('Loading your maps…');
+  // the table shows when its map is drawn; the loading screen stays until then (#23)
+  let shown = false;
+  const showMain = () => { if (shown || !win || win.isDestroyed()) return; shown = true; win.maximize(); win.show(); splash.close(); setTimeout(() => checkForUpdates(win), 4000); };
+  win.webContents.once('did-finish-load', () => { splash.status('Drawing the map…'); whenTableReady(win, showMain); });
+  setTimeout(showMain, 25000); // slow or odd graphics: show it anyway
   win.on('page-title-updated', (e) => e.preventDefault());
   win.webContents.setWindowOpenHandler(({ url }) => { if (/^https?:/.test(url)) shell.openExternal(url); return { action: 'deny' }; });
   win.loadURL(`http://localhost:${server.port}/?dm=${dmKey}`);

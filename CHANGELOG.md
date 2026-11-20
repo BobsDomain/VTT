@@ -4,6 +4,11 @@ All notable changes to Tabletop. Newest first. Each version's section is used as
 
 ## [1.24.1] - 2026-11-20
 
+### Added
+- **Loading screens (#23):**
+  - **When an app starts:** a small Tabletop window shows straight away, for the DM ("Starting the table…", "Drawing the map…") and for players, until the app is ready.
+  - **While the table loads:** a loading screen covers it until the map is drawn, instead of a blank map saying "Connecting…". Players see it while they join.
+
 ### Changed
 - **Tabletop has moved to github.com/BobsDomain/VTT:** downloads, updates, the guides in the Help menu, release announcements and the requests bot all point to the new address. Older versions still find their updates, because GitHub forwards the old address.
 

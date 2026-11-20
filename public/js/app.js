@@ -37,6 +37,20 @@ function toast(text, ms = 3000) {
   clearTimeout(toast.timer); toast.timer = setTimeout(() => t.classList.remove('show'), ms);
 }
 
+// ---------- the loading screen (#23): until the first map has been drawn ----------
+const loadingText = (t) => { const e = $('ldStatus'); if (e) e.textContent = t; };
+function loadingDone() { const l = $('loading'); window.tabletopReady = true; if (!l || l.classList.contains('done')) return; l.classList.add('done'); setTimeout(() => { l.hidden = true; }, 500); }
+function tableLoaded() {
+  if (window.tabletopReady) return;
+  loadingText('Drawing the map…');
+  const t0 = performance.now();
+  const check = () => { // the map's pieces are drawn in the background: wait for them (at most 10 seconds)
+    const busy = chunkWant.length + chunkJobs.size;
+    if (!busy || performance.now() - t0 > 10000) { requestAnimationFrame(() => requestAnimationFrame(loadingDone)); return; }
+    setTimeout(check, 150);
+  };
+  setTimeout(check, 100);
+}
 // ---------- connection ----------
 function connect() {
   ws = new WebSocket((location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host);
@@ -83,6 +97,7 @@ function onMessage(msg) {
       $('log').innerHTML = ''; st.log.forEach((e) => addLog(e, false));
       macros = st.myMacros || []; renderMacros();
       sceneChanged(true);
+      tableLoaded();
       break;
     }
     case 'sight': if (s) { s.sight = msg.data; } break;
@@ -290,7 +305,7 @@ $('tpCode').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('tpSav
 // ----- players: when the table won't let us in -----
 let passcode = '', pin = '', denied = false, pinSet = false;
 function showDenied(reason) {
-  denied = true;
+  denied = true; loadingDone(); // the passcode or PIN box takes over
   const gate = $('gate'); gate.hidden = false;
   const ask = reason === 'passcode' || reason === 'passcode-wrong' || reason === 'wait' || reason === 'pin' || reason === 'pin-wrong';
   const forPin = reason === 'pin' || reason === 'pin-wrong';
@@ -4048,6 +4063,7 @@ function tryGet(k) { try { return localStorage.getItem(k); } catch { return null
 function trySet(k, v) { try { localStorage.setItem(k, v); } catch { /* ignore */ } }
 function start(name) {
   me.name = name; $('join').remove();
+  if (!window.tabletopReady) { const l = $('loading'); if (l) { l.hidden = false; l.classList.remove('done'); } loadingText(dmKey ? 'Opening the table…' : 'Joining the table…'); }
   // the player app passes the passcode after #; a browser remembers the last one that worked here
   const h = new URLSearchParams(location.hash.slice(1));
   passcode = h.get('code') || (dmKey ? '' : tryGet('tt-code') || '');
@@ -4060,7 +4076,7 @@ window.tabletop = { resetPanels, view, sound: snd, diceBusy: () => dice3d.busy()
 const preset = params.get('name') || (dmKey ? 'DM' : '');
 if (preset) start(preset);
 else {
-  $('join').hidden = false; setTimeout(() => $('name').focus(), 0); // only when there's no name yet (a browser): the DM and the player app never see it (#7)
+  $('join').hidden = false; $('loading').hidden = true; setTimeout(() => $('name').focus(), 0); // only when there's no name yet (a browser): the DM and the player app never see it (#7)
   $('name').value = tryGet('vtt-name') || '';
   $('joinForm').onsubmit = (e) => { e.preventDefault(); const n = $('name').value.trim(); if (!n) return; trySet('vtt-name', n); start(n); };
 }

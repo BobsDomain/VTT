@@ -8,7 +8,7 @@ Everything you need to run a session in Tabletop: starting the server, getting p
 2. Start **Tabletop DM**.
 3. Windows shows "Windows protected your PC" because the app isn't code-signed yet. Click **More info**, then **Run anyway**. This happens once.
 4. Windows Firewall asks whether to allow Tabletop DM. Tick **Private networks** and click **Allow**. Without this, players can't reach you.
-5. The DM window opens. Top right shows **Players connect to 192.168.x.x:3000**: give that address to your players. The Copy button copies it.
+5. A small Tabletop window shows while it starts, then the DM window opens once your map is drawn. Top right shows **Players connect to 192.168.x.x:3000**: give that address to your players. The Copy button copies it.
 
 **This guide as a PDF:** **Help → Download the DM guide (PDF)…** saves it wherever you like; **Help → Download the player guide (PDF)…** gives you the players' one to hand out.
 
