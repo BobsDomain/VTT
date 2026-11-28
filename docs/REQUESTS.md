@@ -4,6 +4,7 @@ Feature requests sent to the Tabletop Telegram bot (`/request`). The bot keeps t
 
 | # | Request | Votes | Status |
 | --- | --- | --- | --- |
+| [#25](https://github.com/BobsDomain/VTT/issues/25) | A dockable window for the DM to do mass attack rolls. select number of rolls, modifier, ta | 1 | 💡 Requested |
 | [#1](https://github.com/BobsDomain/VTT/issues/1) | Cone spells always originate from the caster | 1 | ✅ Done |
 | [#2](https://github.com/BobsDomain/VTT/issues/2) | Healer needs a view for all players and DM would need to see all player HP as well | 1 | ✅ Done |
 | [#3](https://github.com/BobsDomain/VTT/issues/3) | Option to hide hp bar of npcs | 1 | ✅ Done |
